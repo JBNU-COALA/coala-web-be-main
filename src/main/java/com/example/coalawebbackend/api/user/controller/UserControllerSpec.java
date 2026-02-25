@@ -22,4 +22,3 @@ public interface UserControllerSpec {
     })
     ResponseEntity<User> createUser(@RequestBody User user);
 }
-

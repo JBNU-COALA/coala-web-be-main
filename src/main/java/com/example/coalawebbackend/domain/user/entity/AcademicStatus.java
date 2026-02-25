@@ -5,4 +5,3 @@ public enum AcademicStatus {
     ON_LEAVE,   // 휴학
     GRADUATED   // 졸업
 }
-
