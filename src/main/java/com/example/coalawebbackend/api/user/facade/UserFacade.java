@@ -18,4 +18,3 @@ public class UserFacade {
         return userService.createUser(user);
     }
 }
-

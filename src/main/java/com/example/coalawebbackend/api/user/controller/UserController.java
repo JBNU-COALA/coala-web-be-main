@@ -24,4 +24,3 @@ public class UserController implements UserControllerSpec {
         return ResponseEntity.status(HttpStatus.CREATED).body(createdUser);
     }
 }
-
