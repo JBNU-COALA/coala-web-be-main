@@ -1,4 +1,4 @@
-package com.example.coalawebbackend.domain.user.facade;
+package com.example.coalawebbackend.api.user.facade;
 
 import com.example.coalawebbackend.domain.user.entity.User;
 import com.example.coalawebbackend.domain.user.service.UserService;
@@ -18,3 +18,4 @@ public class UserFacade {
         return userService.createUser(user);
     }
 }
+
