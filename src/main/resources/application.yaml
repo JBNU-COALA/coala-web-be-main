@@ -1,0 +1,5 @@
+spring:
+  application:
+    name: coala-web-backend
+  profiles:
+    active: dev
