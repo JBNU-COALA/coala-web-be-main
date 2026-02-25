@@ -2,6 +2,7 @@ plugins {
     id 'java'
     id 'org.springframework.boot' version '4.0.3'
     id 'io.spring.dependency-management' version '1.1.7'
+    id 'com.diffplug.spotless' version '6.25.0'
 }
 
 group = 'com.example'
@@ -30,16 +31,47 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
-    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.4'
-
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.5.0'
     runtimeOnly 'org.postgresql:postgresql'
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-security-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-validation-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
 tasks.named('test') {
     useJUnitPlatform()
+}
+
+// ===== Spotless 설정 =====
+spotless {
+    java {
+        target("**/*.java")
+        importOrder()
+        removeUnusedImports()
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
+
+    format 'misc', {
+        target '*.md', '.gitignore', '*.yml', '*.yaml'
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
+}
+
+// Git Hook 자동 설치
+tasks.register('installGitHook', Copy) {
+    from file('scripts/pre-commit')
+    into file('.git/hooks')
+}
+
+// 빌드 시 자동 설치
+tasks.named('compileJava') {
+    dependsOn 'installGitHook'
+    dependsOn 'spotlessCheck'
 }
