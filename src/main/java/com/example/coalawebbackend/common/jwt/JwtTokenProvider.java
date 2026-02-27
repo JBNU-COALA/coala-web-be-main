@@ -59,9 +59,9 @@ public class JwtTokenProvider {
 
         var builder =
                 Jwts.builder()
-                        .subject(subject)
-                        .issuedAt(now)
-                        .expiration(expiry);
+                        .setSubject(subject)
+                        .setIssuedAt(now)
+                        .setExpiration(expiry);
 
         if (claims != null) {
             claims.forEach(builder::claim);
@@ -74,11 +74,11 @@ public class JwtTokenProvider {
      * 토큰 파싱 + 서명/만료 검증
      */
     public Claims parseToken(String token) throws JwtException {
-        return Jwts.parser()
-                .verifyWith(secretKey)
+        return Jwts.parserBuilder()
+                .setSigningKey(secretKey)
                 .build()
-                .parseSignedClaims(token)
-                .getPayload();
+                .parseClaimsJws(token)
+                .getBody();
     }
 
     /**
