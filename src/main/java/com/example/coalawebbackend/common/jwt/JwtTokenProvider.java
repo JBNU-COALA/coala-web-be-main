@@ -107,4 +107,25 @@ public class JwtTokenProvider {
     public String getClaimAsString(String token, String name) {
         return parseToken(token).get(name, String.class);
     }
+
+    public long getRefreshTokenExpirationMillis() {
+        return refreshTokenExpiration;
+    }
+
+    /**
+     * 토큰의 남은 유효 시간(ms). 만료됐으면 0 반환.
+     */
+    public long getRemainingExpirationMillis(String token) {
+        try {
+            Claims claims = parseToken(token);
+            Date expiresAt = claims.getExpiration();
+            if (expiresAt == null) {
+                return 0;
+            }
+            long remaining = expiresAt.getTime() - System.currentTimeMillis();
+            return Math.max(0, remaining);
+        } catch (JwtException e) {
+            return 0;
+        }
+    }
 }
