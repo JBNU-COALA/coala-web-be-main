@@ -42,4 +42,11 @@ public interface AuthControllerSpec {
             required = true,
             content = @Content(schema = @Schema(implementation = TokenRefreshRequest.class)))
     ResponseEntity<TokenResponse> refresh(TokenRefreshRequest request);
+
+    @Operation(summary = "로그아웃", description = "액세스 토큰을 Redis 블랙리스트에 TTL과 함께 저장하고, 해당 사용자의 리프레시 토큰을 삭제합니다. Authorization: Bearer {accessToken} 필요.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "로그아웃 성공", content = @Content),
+        @ApiResponse(responseCode = "401", description = "토큰 없음 또는 만료", content = @Content)
+    })
+    ResponseEntity<Void> logout(jakarta.servlet.http.HttpServletRequest request);
 }

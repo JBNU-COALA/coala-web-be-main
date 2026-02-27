@@ -4,6 +4,7 @@ import com.example.coalawebbackend.api.auth.dto.TokenInfo;
 import com.example.coalawebbackend.api.auth.dto.TokenResponse;
 import com.example.coalawebbackend.api.user.dto.UserResponse;
 import com.example.coalawebbackend.common.jwt.JwtTokenProvider;
+import com.example.coalawebbackend.common.jwt.RefreshTokenStore;
 import com.example.coalawebbackend.domain.user.entity.User;
 import com.example.coalawebbackend.domain.user.service.UserService;
 import java.util.Map;
@@ -22,6 +23,7 @@ public class UserFacade {
     private final UserService userService;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
+    private final RefreshTokenStore refreshTokenStore;
 
     @Transactional
     public TokenResponse createUser(User user) {
@@ -43,6 +45,7 @@ public class UserFacade {
         TokenInfo tokens =
                 jwtTokenProvider.generateTokenInfo(
                         String.valueOf(createdUser.getId()), Map.of("email", createdUser.getEmail()));
+        refreshTokenStore.save(String.valueOf(createdUser.getId()), tokens.refreshToken());
         return new TokenResponse(
                 tokens.accessToken(),
                 tokens.refreshToken(),

@@ -8,6 +8,8 @@ import com.example.coalawebbackend.api.auth.exception.AuthException;
 import com.example.coalawebbackend.api.user.dto.UserResponse;
 import com.example.coalawebbackend.common.enums.ErrorCode;
 import com.example.coalawebbackend.common.jwt.JwtTokenProvider;
+import com.example.coalawebbackend.common.jwt.LogoutTokenStore;
+import com.example.coalawebbackend.common.jwt.RefreshTokenStore;
 import com.example.coalawebbackend.domain.user.entity.User;
 import com.example.coalawebbackend.domain.user.repository.UserRepository;
 import java.util.Map;
@@ -26,6 +28,8 @@ public class AuthFacade {
     private final UserRepository userRepository;
     private final JwtTokenProvider jwtTokenProvider;
     private final PasswordEncoder passwordEncoder;
+    private final RefreshTokenStore refreshTokenStore;
+    private final LogoutTokenStore logoutTokenStore;
 
     @Transactional
     public TokenResponse login(LoginRequest request) {
@@ -41,6 +45,7 @@ public class AuthFacade {
         TokenInfo tokens =
                 jwtTokenProvider.generateTokenInfo(
                         String.valueOf(user.getId()), Map.of("email", user.getEmail()));
+        refreshTokenStore.save(String.valueOf(user.getId()), tokens.refreshToken());
         return new TokenResponse(
                 tokens.accessToken(),
                 tokens.refreshToken(),
@@ -70,10 +75,19 @@ public class AuthFacade {
         TokenInfo tokens =
                 jwtTokenProvider.generateTokenInfo(
                         String.valueOf(user.getId()), Map.of("email", user.getEmail()));
+        refreshTokenStore.save(String.valueOf(user.getId()), tokens.refreshToken());
         return new TokenResponse(
                 tokens.accessToken(),
                 tokens.refreshToken(),
                 TOKEN_TYPE,
                 UserResponse.from(user));
+    }
+
+    @Transactional
+    public void logout(String accessToken) {
+        String userId = jwtTokenProvider.getSubject(accessToken);
+        long ttlMillis = jwtTokenProvider.getRemainingExpirationMillis(accessToken);
+        logoutTokenStore.add(accessToken, ttlMillis);
+        refreshTokenStore.delete(userId);
     }
 }

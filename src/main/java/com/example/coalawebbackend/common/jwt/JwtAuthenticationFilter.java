@@ -21,6 +21,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider jwtTokenProvider;
+    private final LogoutTokenStore logoutTokenStore;
 
     @Override
     protected void doFilterInternal(
@@ -31,7 +32,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String token = resolveToken(request);
 
-        if (token != null && !jwtTokenProvider.isExpired(token)) {
+        if (token != null
+                && !jwtTokenProvider.isExpired(token)
+                && !logoutTokenStore.isBlacklisted(token)) {
             String userId = jwtTokenProvider.getSubject(token);
             String role = jwtTokenProvider.getClaimAsString(token, "role");
 
