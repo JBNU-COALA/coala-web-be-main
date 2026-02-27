@@ -1,9 +1,12 @@
 spring:
+  config:
+    import: optional:file:.env[.properties]  # .env 파일 값 읽기
+
   datasource:
     url: ${DB_URL}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
-    driver-class-name: org.postgresql.Driver   # ← 이 줄 추가
+    driver-class-name: org.postgresql.Driver
 
   jpa:
     hibernate:
@@ -12,8 +15,6 @@ spring:
     properties:
       hibernate:
         format_sql: true
-    # PostgreSQL 사용 시 dialect 자동 감지되므로 제거 가능 (경고 제거)
-    # database-platform: org.hibernate.dialect.PostgreSQLDialect
 
 jwt:
   # 환경변수 미설정 시 로컬 전용 기본값 (배포 시 반드시 JWT_SECRET 설정)
