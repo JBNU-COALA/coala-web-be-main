@@ -1,0 +1,79 @@
+package com.example.coalawebbackend.api.auth.facade;
+
+import com.example.coalawebbackend.api.auth.dto.LoginRequest;
+import com.example.coalawebbackend.api.auth.dto.TokenInfo;
+import com.example.coalawebbackend.api.auth.dto.TokenRefreshRequest;
+import com.example.coalawebbackend.api.auth.dto.TokenResponse;
+import com.example.coalawebbackend.api.auth.exception.AuthException;
+import com.example.coalawebbackend.api.user.dto.UserResponse;
+import com.example.coalawebbackend.common.enums.ErrorCode;
+import com.example.coalawebbackend.common.jwt.JwtTokenProvider;
+import com.example.coalawebbackend.domain.user.entity.User;
+import com.example.coalawebbackend.domain.user.repository.UserRepository;
+import java.util.Map;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
+@Component
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
+public class AuthFacade {
+
+    private static final String TOKEN_TYPE = "Bearer";
+
+    private final UserRepository userRepository;
+    private final JwtTokenProvider jwtTokenProvider;
+    private final PasswordEncoder passwordEncoder;
+
+    @Transactional
+    public TokenResponse login(LoginRequest request) {
+        User user =
+                userRepository
+                        .findByEmail(request.email())
+                        .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
+
+        if (!passwordEncoder.matches(request.password(), user.getPassword())) {
+            throw new AuthException(ErrorCode.INVALID_CREDENTIALS);
+        }
+
+        TokenInfo tokens =
+                jwtTokenProvider.generateTokenInfo(
+                        String.valueOf(user.getId()), Map.of("email", user.getEmail()));
+        return new TokenResponse(
+                tokens.accessToken(),
+                tokens.refreshToken(),
+                TOKEN_TYPE,
+                UserResponse.from(user));
+    }
+
+    @Transactional
+    public TokenResponse refresh(TokenRefreshRequest request) {
+        String subject;
+        try {
+            subject = jwtTokenProvider.getSubject(request.refreshToken());
+        } catch (Exception e) {
+            throw new AuthException(ErrorCode.INVALID_REFRESH_TOKEN);
+        }
+
+        if (jwtTokenProvider.isExpired(request.refreshToken())) {
+            throw new AuthException(ErrorCode.INVALID_REFRESH_TOKEN);
+        }
+
+        Long userId = Long.parseLong(subject);
+        User user =
+                userRepository
+                        .findById(userId)
+                        .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
+
+        TokenInfo tokens =
+                jwtTokenProvider.generateTokenInfo(
+                        String.valueOf(user.getId()), Map.of("email", user.getEmail()));
+        return new TokenResponse(
+                tokens.accessToken(),
+                tokens.refreshToken(),
+                TOKEN_TYPE,
+                UserResponse.from(user));
+    }
+}
