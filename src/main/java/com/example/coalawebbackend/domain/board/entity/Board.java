@@ -13,6 +13,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import java.util.Objects;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -38,6 +39,7 @@ public class Board extends BaseEntity {
     @Column(nullable = false)
     private String name;
 
+    @Column(nullable = false)
     @Builder.Default
     private String type = "NORMAL";
 
@@ -65,7 +67,7 @@ public class Board extends BaseEntity {
         return Board.builder()
                 .name(name)
                 .description(description)
-                .type(type)
+                .type(Objects.requireNonNullElse(type, "NORMAL"))
                 .user(user)
                 .build();
     }
