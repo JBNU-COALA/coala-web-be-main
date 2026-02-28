@@ -1,8 +1,6 @@
 package com.example.coalawebbackend.domain.board.entity;
 
 
-import com.example.coalawebbackend.api.board.dto.CreateBoardRequest;
-import com.example.coalawebbackend.api.board.dto.UpdateBoardRequest;
 import com.example.coalawebbackend.common.entity.BaseEntity;
 import com.example.coalawebbackend.domain.user.entity.User;
 import jakarta.persistence.Column;
@@ -15,6 +13,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import java.util.Objects;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -41,9 +40,10 @@ public class Board extends BaseEntity {
     private String name;
 
     @Column(nullable = false)
+    @Builder.Default
     private String type = "NORMAL";
 
-    @Column(nullable = false)
+    @Builder.Default
     private Boolean isActive = true;
 
     private String description;
@@ -55,19 +55,20 @@ public class Board extends BaseEntity {
         }
     }
 
-    public void updateBoard(UpdateBoardRequest request) {
-        this.name = request.getBoardName();
-        this.description = request.getDescription();
-        this.isActive = request.getIsActive();
+    public void updateBoard(String name, String description, Boolean isActive) {
+        this.name = name;
+        this.description = description;
+        if (isActive != null) {
+            this.isActive = isActive;
+        }
     }
 
-    public static Board createFromBoard(CreateBoardRequest req, User user) {
+    public static Board createFromBoard(String name, String description, String type, User user) {
         return Board.builder()
+                .name(name)
+                .description(description)
+                .type(Objects.requireNonNullElse(type, "NORMAL"))
                 .user(user)
-                .name(req.getBoardName())
-                .type(req.getBoardType())
-                .description(req.getDescription())
-                .isActive(true)
                 .build();
     }
 }
