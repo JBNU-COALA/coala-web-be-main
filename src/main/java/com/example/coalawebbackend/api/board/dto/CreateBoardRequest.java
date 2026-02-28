@@ -5,11 +5,13 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+@Builder
 @Getter
-@NoArgsConstructor(access = AccessLevel.PRIVATE)
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class CreateBoardRequest {
 
@@ -23,5 +25,6 @@ public class CreateBoardRequest {
 
     @Size(max = 255, message = "설명은 255자 이내여야 합니다.")
     private String description;
+
 
 }

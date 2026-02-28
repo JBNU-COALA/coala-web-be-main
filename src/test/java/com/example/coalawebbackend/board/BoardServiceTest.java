@@ -89,7 +89,8 @@ class BoardServiceTest {
 
         // then
         assertThat(response).isNotNull();
-        then(board).should(times(1)).updateBoard(request);
+        then(board).should(times(1)).updateBoard(request.getBoardName(),request.getDescription(),
+                request.getIsActive());
     }
 
     @Test
