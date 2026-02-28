@@ -1,8 +1,9 @@
 package com.example.coalawebbackend.api.post.controller;
 
 import com.example.coalawebbackend.api.post.dto.CreatePostResponse;
+import com.example.coalawebbackend.api.post.dto.PostDetailResponse;
+import com.example.coalawebbackend.api.post.dto.PostListResponse;
 import com.example.coalawebbackend.api.post.dto.PostRequest;
-import com.example.coalawebbackend.api.post.dto.PostResponse;
 import com.example.coalawebbackend.api.post.dto.UpdatePostResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -44,10 +45,10 @@ public interface PostControllerSpec {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "조회 성공",
                     content = @Content(array = @ArraySchema(
-                            schema = @Schema(implementation = PostResponse.class)))),
+                            schema = @Schema(implementation = PostDetailResponse.class)))),
             @ApiResponse(responseCode = "404", description = "게시판을 찾을 수 없음")
     })
-    ResponseEntity<List<PostResponse>> getPosts(
+    ResponseEntity<List<PostListResponse>> getPosts(
             @Parameter(description = "게시판 ID", required = true)
             @PathVariable Long boardId
     );
@@ -56,12 +57,12 @@ public interface PostControllerSpec {
     @Operation(summary = "게시글 상세 조회", description = "특정 게시글의 상세 정보를 조회합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "조회 성공",
-                    content = @Content(schema = @Schema(implementation = PostResponse.class))),
+                    content = @Content(schema = @Schema(implementation = PostDetailResponse.class))),
             @ApiResponse(responseCode = "401", description = "인증 실패"),
             @ApiResponse(responseCode = "404", description = "게시글 또는 게시판을 찾을 수 없음")
     })
-    ResponseEntity<PostResponse> getPostDetail(
-            @Parameter(hidden = true)
+    ResponseEntity<PostDetailResponse> getPostDetail(
+            @Parameter(description = "게시판 ID", required = true)
             @PathVariable Long boardId,
             @Parameter(description = "게시글 ID", required = true)
             @PathVariable Long postId

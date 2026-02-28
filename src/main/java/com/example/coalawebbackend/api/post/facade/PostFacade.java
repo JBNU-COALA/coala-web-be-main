@@ -1,8 +1,9 @@
 package com.example.coalawebbackend.api.post.facade;
 
 import com.example.coalawebbackend.api.post.dto.CreatePostResponse;
+import com.example.coalawebbackend.api.post.dto.PostDetailResponse;
+import com.example.coalawebbackend.api.post.dto.PostListResponse;
 import com.example.coalawebbackend.api.post.dto.PostRequest;
-import com.example.coalawebbackend.api.post.dto.PostResponse;
 import com.example.coalawebbackend.api.post.dto.UpdatePostResponse;
 import com.example.coalawebbackend.domain.post.service.PostService;
 import com.example.coalawebbackend.domain.user.entity.User;
@@ -38,11 +39,11 @@ public class PostFacade {
         postService.deletePost(postId, user);
     }
 
-    public List<PostResponse> getPosts(Long boardId) {
+    public List<PostListResponse> getPosts(Long boardId) {
         return postService.getPosts(boardId);
     }
 
-    public PostResponse getPostDetail(Long boardId, Long postId) {
+    public PostDetailResponse getPostDetail(Long boardId, Long postId) {
         return postService.getPostDetail(boardId, postId);
     }
 }

@@ -2,8 +2,9 @@ package com.example.coalawebbackend.domain.post.service;
 
 
 import com.example.coalawebbackend.api.post.dto.CreatePostResponse;
+import com.example.coalawebbackend.api.post.dto.PostDetailResponse;
+import com.example.coalawebbackend.api.post.dto.PostListResponse;
 import com.example.coalawebbackend.api.post.dto.PostRequest;
-import com.example.coalawebbackend.api.post.dto.PostResponse;
 import com.example.coalawebbackend.api.post.dto.UpdatePostResponse;
 import com.example.coalawebbackend.common.enums.ErrorCode;
 import com.example.coalawebbackend.common.exception.CustomException;
@@ -32,19 +33,19 @@ public class PostService {
         return CreatePostResponse.from(postRepository.save(post));
     }
 
-    public List<PostResponse> getPosts(Long boardId) {
+    public List<PostListResponse> getPosts(Long boardId) {
         return postRepository.findByBoardBoardId(boardId)
                 .stream()
-                .map(PostResponse::from)
+                .map(PostListResponse::from)
                 .toList();
     }
 
-    public PostResponse getPostDetail(Long boardId, Long postId) {
+    public PostDetailResponse getPostDetail(Long boardId, Long postId) {
         Post post = getPostById(postId);
         if (!post.getBoard().getBoardId().equals(boardId)) {
             throw new CustomException(ErrorCode.POST_NOT_FOUND);
         }
-        return PostResponse.from(post);
+        return PostDetailResponse.from(post);
     }
 
     @Transactional

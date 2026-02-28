@@ -10,7 +10,7 @@ import lombok.Getter;
 @Getter
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
-public class PostResponse {
+public class PostDetailResponse {
 
     private Long postId;
     private Long boardId;
@@ -22,8 +22,8 @@ public class PostResponse {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    public static PostResponse from(Post post) {
-        return PostResponse.builder()
+    public static PostDetailResponse from(Post post) {
+        return PostDetailResponse.builder()
                 .postId(post.getPostId())
                 .boardId(post.getBoard().getBoardId())
                 .userId(post.getUser().getId())

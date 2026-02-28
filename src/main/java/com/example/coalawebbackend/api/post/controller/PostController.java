@@ -1,8 +1,9 @@
 package com.example.coalawebbackend.api.post.controller;
 
 import com.example.coalawebbackend.api.post.dto.CreatePostResponse;
+import com.example.coalawebbackend.api.post.dto.PostDetailResponse;
+import com.example.coalawebbackend.api.post.dto.PostListResponse;
 import com.example.coalawebbackend.api.post.dto.PostRequest;
-import com.example.coalawebbackend.api.post.dto.PostResponse;
 import com.example.coalawebbackend.api.post.dto.UpdatePostResponse;
 import com.example.coalawebbackend.api.post.facade.PostFacade;
 import jakarta.validation.Valid;
@@ -39,7 +40,7 @@ public class PostController implements PostControllerSpec {
 
 
     @GetMapping("/boards/{boardId}/posts")
-    public ResponseEntity<List<PostResponse>> getPosts(
+    public ResponseEntity<List<PostListResponse>> getPosts(
             @PathVariable Long boardId
     ) {
         return ResponseEntity
@@ -48,7 +49,7 @@ public class PostController implements PostControllerSpec {
     }
 
     @GetMapping("/boards/{boardId}/posts/{postId}")
-    public ResponseEntity<PostResponse> getPostDetail(
+    public ResponseEntity<PostDetailResponse> getPostDetail(
             @PathVariable Long boardId,
             @PathVariable Long postId
     ) {
