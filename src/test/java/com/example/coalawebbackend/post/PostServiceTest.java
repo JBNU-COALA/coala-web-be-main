@@ -156,7 +156,7 @@ class PostServiceTest {
 
         // then
         assertThat(response).isNotNull();
-        then(post).should(times(1)).update(request);
+        then(post).should(times(1)).update(request.getTitle(), request.getContent());
     }
 
     @Test
