@@ -60,4 +60,13 @@ public class BoardService {
         boardRepository.delete(board);
     }
 
+    @Transactional(readOnly = true)
+    public Board getBoardById(Long boardId) {
+
+        return boardRepository.findById(boardId)
+                .orElseThrow(() ->
+                        new CustomException(ErrorCode.BOARD_NOT_FOUND)
+                );
+    }
+
 }
