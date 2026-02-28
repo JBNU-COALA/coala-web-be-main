@@ -49,7 +49,6 @@ public class PostController implements PostControllerSpec {
 
     @GetMapping("/boards/{boardId}/posts/{postId}")
     public ResponseEntity<PostResponse> getPostDetail(
-            @AuthenticationPrincipal String userId,
             @PathVariable Long boardId,
             @PathVariable Long postId
     ) {

@@ -28,7 +28,7 @@ public class PostService {
     @Transactional
     public CreatePostResponse createPost(User user, Long boardId, PostRequest request) {
         Board board = boardService.getBoardById(boardId);
-        Post post = Post.create(request, board, user);
+        Post post = Post.create(request.getTitle(),request.getContent(), board, user);
         return CreatePostResponse.from(postRepository.save(post));
     }
 
@@ -51,7 +51,7 @@ public class PostService {
     public UpdatePostResponse updatePost(Long postId, PostRequest request, User user) {
         Post post = getPostById(postId);
         validatePostOwner(post, user);
-        post.update(request);
+        post.update(request.getTitle(), request.getContent());
         return UpdatePostResponse.from(post);
     }
 
