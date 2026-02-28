@@ -1,6 +1,5 @@
 package com.example.coalawebbackend.domain.post.entity;
 
-import com.example.coalawebbackend.api.post.dto.PostRequest;
 import com.example.coalawebbackend.common.entity.BaseEntity;
 import com.example.coalawebbackend.domain.board.entity.Board;
 import com.example.coalawebbackend.domain.user.entity.User;
@@ -32,7 +31,7 @@ public class Post extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long postId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(nullable = false)
     private Board board;
 
@@ -46,19 +45,19 @@ public class Post extends BaseEntity {
     @Column(columnDefinition = "TEXT")
     private String content;
 
-    public static Post create(PostRequest dto,
-                                      Board board,
-                                      User user) {
+    public static Post create(String title, String content,
+                              Board board,
+                              User user) {
         return Post.builder()
+                .title(title)
+                .content(content)
                 .board(board)
                 .user(user)
-                .title(dto.getTitle())
-                .content(dto.getContent())
                 .build();
     }
 
-    public void update(PostRequest dto) {
-        this.title = dto.getTitle();
-        this.content = dto.getContent();
+    public void update(String title, String content) {
+        this.title = title;
+        this.content = content;
     }
 }

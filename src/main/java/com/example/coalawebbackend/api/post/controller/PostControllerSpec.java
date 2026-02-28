@@ -62,8 +62,6 @@ public interface PostControllerSpec {
     })
     ResponseEntity<PostResponse> getPostDetail(
             @Parameter(hidden = true)
-            @AuthenticationPrincipal String userId,
-            @Parameter(description = "게시판 ID", required = true)
             @PathVariable Long boardId,
             @Parameter(description = "게시글 ID", required = true)
             @PathVariable Long postId
