@@ -9,8 +9,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 
 import com.example.coalawebbackend.api.post.dto.CreatePostResponse;
+import com.example.coalawebbackend.api.post.dto.PostDetailResponse;
+import com.example.coalawebbackend.api.post.dto.PostListResponse;
 import com.example.coalawebbackend.api.post.dto.PostRequest;
-import com.example.coalawebbackend.api.post.dto.PostResponse;
 import com.example.coalawebbackend.api.post.dto.UpdatePostResponse;
 import com.example.coalawebbackend.common.enums.ErrorCode;
 import com.example.coalawebbackend.common.exception.CustomException;
@@ -75,7 +76,7 @@ class PostServiceTest {
         given(postRepository.findByBoardBoardId(1L)).willReturn(List.of(post));
 
         // when
-        List<PostResponse> result = postService.getPosts(1L);
+        List<PostListResponse> result = postService.getPosts(1L);
 
         // then
         assertThat(result).hasSize(1);
@@ -98,7 +99,7 @@ class PostServiceTest {
         given(postRepository.findById(postId)).willReturn(Optional.of(post));
 
         // when
-        PostResponse response = postService.getPostDetail(boardId, postId);
+        PostDetailResponse response = postService.getPostDetail(boardId, postId);
 
         // then
         assertThat(response).isNotNull();
