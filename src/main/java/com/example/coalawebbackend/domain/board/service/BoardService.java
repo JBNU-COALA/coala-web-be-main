@@ -24,7 +24,7 @@ public class BoardService {
 
     @Transactional
     public CreateBoardResponse createBoard(CreateBoardRequest request, User user) {
-        Board board = Board.createFromBoard(request, user);
+        Board board = Board.createFromBoard(request.getBoardName(), request.getDescription(), request.getBoardType(), user);
         Board savedBoard = boardRepository.save(board);
         return CreateBoardResponse.from(savedBoard);
     }
@@ -45,7 +45,7 @@ public class BoardService {
             throw new CustomException(ErrorCode.BOARD_ACCESS_DENIED);
         }
 
-        board.updateBoard(request);
+        board.updateBoard(request.getBoardName(), request.getDescription(), request.getIsActive());
         return UpdateBoardResponse.of(boardId);
     }
 

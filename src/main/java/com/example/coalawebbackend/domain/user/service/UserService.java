@@ -21,7 +21,11 @@ public class UserService {
     }
 
     public User findById(String userId) {
-        return userRepository.findById(Long.parseLong(userId))
-                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+        try {
+            return userRepository.findById(Long.parseLong(userId))
+                    .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+        } catch (NumberFormatException e) {
+            throw new CustomException(ErrorCode.INVALID_USER_ID);
+        }
     }
 }
