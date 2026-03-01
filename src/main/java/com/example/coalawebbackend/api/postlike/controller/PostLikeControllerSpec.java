@@ -2,6 +2,7 @@ package com.example.coalawebbackend.api.postlike.controller;
 
 import com.example.coalawebbackend.api.postlike.dto.PostLikeResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -22,6 +23,6 @@ public interface PostLikeControllerSpec {
     })
     ResponseEntity<PostLikeResponse> toggleLike(
             @PathVariable Long postId,
-            String userId
+            @Parameter(hidden = true) String userId
     );
 }
