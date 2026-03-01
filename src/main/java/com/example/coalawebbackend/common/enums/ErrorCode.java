@@ -26,8 +26,9 @@ public enum ErrorCode implements BaseCode {
 
     COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "댓글을 찾을 수 없습니다." ),
 
-    POST_LIKE_NOT_FOUND(HttpStatus.NOT_FOUND, "댓글을 찾을 수 없습니다." );
+    POST_LIKE_NOT_FOUND(HttpStatus.NOT_FOUND, "게시글을 찾을 수 없습니다." ),
 
+    DUPLICATE_LIKE(HttpStatus.CONFLICT, "이미 좋아요를 누른 게시글입니다.");
 
 
 
