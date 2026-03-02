@@ -39,9 +39,4 @@ public class PostLikeService {
         long likeCount = postLikeRepository.countByPost(post);
         return PostLikeResponse.of(true, likeCount);
     }
-
-    @Transactional
-    public void increaseViewCount(Post post) {
-        post.increaseViewCount();
-    }
 }
