@@ -18,6 +18,7 @@ public class PostDetailResponse {
 
     private String title;
     private String content;
+    private int viewCount;
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -29,6 +30,7 @@ public class PostDetailResponse {
                 .userId(post.getUser().getId())
                 .title(post.getTitle())
                 .content(post.getContent())
+                .viewCount(post.getViewCount())
                 .createdAt(post.getCreatedAt())
                 .updatedAt(post.getUpdatedAt())
                 .build();

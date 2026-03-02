@@ -65,6 +65,14 @@ public class CommentService {
         }
     }
 
+    public Comment getCommentInPost(Long postId, Long commentId) {
+        Comment comment = getComment(commentId);
+        if (!comment.getPost().getPostId().equals(postId)) {
+            throw new CustomException(ErrorCode.COMMENT_NOT_FOUND);
+        }
+        return comment;
+    }
+
     private void validateCommentOwner(Comment comment, User user) {
 
         if (!comment.getUser().getId().equals(user.getId())) {
