@@ -6,6 +6,7 @@ import com.example.coalawebbackend.api.post.dto.PostListResponse;
 import com.example.coalawebbackend.api.post.dto.PostRequest;
 import com.example.coalawebbackend.api.post.dto.UpdatePostResponse;
 import com.example.coalawebbackend.domain.post.service.PostService;
+import com.example.coalawebbackend.domain.postlike.service.PostLikeService;
 import com.example.coalawebbackend.domain.user.entity.User;
 import com.example.coalawebbackend.domain.user.service.UserService;
 import java.util.List;
@@ -15,11 +16,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Component
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class PostFacade {
 
     private final UserService userService;
     private final PostService postService;
+    private final PostLikeService postLikeService;
 
     @Transactional
     public CreatePostResponse createPost(String userId, Long boardId, PostRequest request) {
@@ -39,10 +40,11 @@ public class PostFacade {
         postService.deletePost(postId, user);
     }
 
-    public List<PostListResponse> getPosts(Long boardId) {
-        return postService.getPosts(boardId);
-    }
+    @Transactional(readOnly = true)
+    public List<PostListResponse> getPosts(Long boardId)
+    {return postService.getPosts(boardId);}
 
+    @Transactional
     public PostDetailResponse getPostDetail(Long boardId, Long postId) {
         return postService.getPostDetail(boardId, postId);
     }
