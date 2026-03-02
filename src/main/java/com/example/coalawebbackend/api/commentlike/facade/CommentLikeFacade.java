@@ -20,8 +20,8 @@ public class CommentLikeFacade {
     private final UserService userService;
 
     public CommentLikeResponse toggleLike(Long postId, Long commentId, String userId) {
-        postService.getPostById(postId);                      // post 존재 확인
-        Comment comment = commentService.getComment(commentId);  // comment 조회
+        postService.getPostById(postId);
+        Comment comment = commentService.getCommentInPost(postId, commentId);
         User user = userService.findById(userId);
         return commentLikeService.toggleLike(user, comment);
     }
