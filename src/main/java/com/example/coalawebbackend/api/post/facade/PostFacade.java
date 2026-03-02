@@ -15,7 +15,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Component
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class PostFacade {
 
     private final UserService userService;
@@ -39,10 +38,11 @@ public class PostFacade {
         postService.deletePost(postId, user);
     }
 
-    public List<PostListResponse> getPosts(Long boardId) {
-        return postService.getPosts(boardId);
-    }
+    @Transactional(readOnly = true)
+    public List<PostListResponse> getPosts(Long boardId)
+    {return postService.getPosts(boardId);}
 
+    @Transactional
     public PostDetailResponse getPostDetail(Long boardId, Long postId) {
         return postService.getPostDetail(boardId, postId);
     }

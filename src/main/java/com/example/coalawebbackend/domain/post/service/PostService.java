@@ -20,7 +20,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class PostService {
 
     private final PostRepository postRepository;
@@ -33,6 +32,7 @@ public class PostService {
         return CreatePostResponse.from(postRepository.save(post));
     }
 
+    @Transactional(readOnly = true)
     public List<PostListResponse> getPosts(Long boardId) {
         return postRepository.findByBoardBoardId(boardId)
                 .stream()
@@ -40,12 +40,17 @@ public class PostService {
                 .toList();
     }
 
+    @Transactional
     public PostDetailResponse getPostDetail(Long boardId, Long postId) {
-        Post post = getPostById(postId);
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new CustomException(ErrorCode.POST_NOT_FOUND));
         if (!post.getBoard().getBoardId().equals(boardId)) {
             throw new CustomException(ErrorCode.POST_NOT_FOUND);
         }
-        return PostDetailResponse.from(post);
+        postRepository.increaseViewCount(postId);
+        Post updatedPost = postRepository.findById(postId)
+                .orElseThrow(() -> new CustomException(ErrorCode.POST_NOT_FOUND));
+        return PostDetailResponse.from(updatedPost);
     }
 
     @Transactional
@@ -62,6 +67,7 @@ public class PostService {
         validatePostOwner(post, user);
         postRepository.delete(post);
     }
+
 
     public Post getPostById(Long postId) {
         return postRepository.findById(postId)
