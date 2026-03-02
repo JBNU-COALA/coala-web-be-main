@@ -48,7 +48,9 @@ public class PostService {
             throw new CustomException(ErrorCode.POST_NOT_FOUND);
         }
         postRepository.increaseViewCount(postId);
-        return PostDetailResponse.from(post);
+        Post updatedPost = postRepository.findById(postId)
+                .orElseThrow(() -> new CustomException(ErrorCode.POST_NOT_FOUND));
+        return PostDetailResponse.from(updatedPost);
     }
 
     @Transactional

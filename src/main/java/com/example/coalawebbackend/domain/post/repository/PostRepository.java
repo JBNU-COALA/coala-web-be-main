@@ -11,7 +11,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
     List<Post> findByBoardBoardId(Long boardId);
 
-    @Modifying
+    @Modifying(clearAutomatically = true)
     @Query("UPDATE Post p SET p.viewCount = p.viewCount + 1 WHERE p.postId = :postId")
     void increaseViewCount(@Param("postId") Long postId);
 }
