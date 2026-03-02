@@ -47,7 +47,7 @@ class PostLikeServiceTest {
         // then
         assertThat(response.isLiked()).isTrue();
         assertThat(response.getLikeCount()).isEqualTo(1L);
-        then(postLikeRepository).should(times(1)).save(any(PostLike.class));
+        then(postLikeRepository).should(times(1)).saveAndFlush(any(PostLike.class));
     }
 
     @Test

@@ -89,6 +89,7 @@ class PostServiceTest {
         // given
         Long boardId = 1L;
         Long postId = 1L;
+
         Board board = mock(Board.class);
         User user = mock(User.class);
         Post post = mock(Post.class);
@@ -96,7 +97,6 @@ class PostServiceTest {
         given(board.getBoardId()).willReturn(boardId);
         given(post.getBoard()).willReturn(board);
         given(post.getUser()).willReturn(user);
-        given(postRepository.findById(postId)).willReturn(Optional.of(post));
 
         // when
         PostDetailResponse response = postService.getPostDetail(boardId, postId);
@@ -104,37 +104,46 @@ class PostServiceTest {
         // then
         assertThat(response).isNotNull();
     }
+
     @Test
-    @DisplayName("게시글 상세 조회 실패 - 게시글 없음")
-    void getPostDetail_fail_postNotFound() {
+    @DisplayName("게시글 조회 실패 - 게시글 없음")
+    void getPostById_notFound() {
         // given
-        given(postRepository.findById(1L)).willReturn(Optional.empty());
+        Long postId = 999L;
+
+        given(postRepository.findById(postId)).willReturn(Optional.empty());
 
         // when & then
-        assertThatThrownBy(() -> postService.getPostDetail(1L, 1L))
+        assertThatThrownBy(() -> postService.getPostById(postId))
                 .isInstanceOf(CustomException.class)
-                .satisfies(e -> assertThat(((CustomException) e).getErrorCode())
-                        .isEqualTo(ErrorCode.POST_NOT_FOUND));
+                .satisfies(e -> {
+                    CustomException ex = (CustomException) e;
+                    assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.POST_NOT_FOUND);
+                });
     }
 
+
     @Test
-    @DisplayName("게시글 상세 조회 실패 - 게시판 불일치")
-    void getPostDetail_fail_boardMismatch() {
+    @DisplayName("게시글 상세 조회 실패 - 다른 게시판의 게시글")
+    void getPostDetail_postNotBelongsToBoard() {
         // given
         Long boardId = 1L;
+        Long otherBoardId = 2L;
         Long postId = 1L;
+
         Board board = mock(Board.class);
         Post post = mock(Post.class);
 
-        given(board.getBoardId()).willReturn(2L); // 다른 boardId
+        given(board.getBoardId()).willReturn(otherBoardId);
         given(post.getBoard()).willReturn(board);
-        given(postRepository.findById(postId)).willReturn(Optional.of(post));
 
         // when & then
         assertThatThrownBy(() -> postService.getPostDetail(boardId, postId))
                 .isInstanceOf(CustomException.class)
-                .satisfies(e -> assertThat(((CustomException) e).getErrorCode())
-                        .isEqualTo(ErrorCode.POST_NOT_FOUND));
+                .satisfies(e -> {
+                    CustomException ex = (CustomException) e;
+                    assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.POST_NOT_FOUND);
+                });
     }
 
     @Test
