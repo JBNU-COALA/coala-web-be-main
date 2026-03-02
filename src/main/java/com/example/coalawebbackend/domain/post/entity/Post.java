@@ -48,10 +48,6 @@ public class Post extends BaseEntity {
     @Column(nullable = false, columnDefinition = "integer default 0")
     private int viewCount = 0;
 
-    public void increaseViewCount() {
-        this.viewCount++;
-    }
-
     public static Post create(String title, String content,
                               Board board,
                               User user) {
