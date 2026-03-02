@@ -126,7 +126,6 @@ class PostServiceTest {
     @Test
     @DisplayName("게시글 상세 조회 실패 - 다른 게시판의 게시글")
     void getPostDetail_postNotBelongsToBoard() {
-        // given
         Long boardId = 1L;
         Long otherBoardId = 2L;
         Long postId = 1L;
@@ -136,8 +135,8 @@ class PostServiceTest {
 
         given(board.getBoardId()).willReturn(otherBoardId);
         given(post.getBoard()).willReturn(board);
+        given(postRepository.findById(postId)).willReturn(Optional.of(post));
 
-        // when & then
         assertThatThrownBy(() -> postService.getPostDetail(boardId, postId))
                 .isInstanceOf(CustomException.class)
                 .satisfies(e -> {

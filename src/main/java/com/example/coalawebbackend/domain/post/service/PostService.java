@@ -47,7 +47,7 @@ public class PostService {
         if (!post.getBoard().getBoardId().equals(boardId)) {
             throw new CustomException(ErrorCode.POST_NOT_FOUND);
         }
-        post.increaseViewCount();
+        postRepository.increaseViewCount(postId);
         return PostDetailResponse.from(post);
     }
 
