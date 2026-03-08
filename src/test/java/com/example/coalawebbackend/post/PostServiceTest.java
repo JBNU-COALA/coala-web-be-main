@@ -99,6 +99,8 @@ class PostServiceTest {
         given(post.getUser()).willReturn(user);
 
         // when
+        given(postRepository.findById(postId)).willReturn(Optional.of(post));
+
         PostDetailResponse response = postService.getPostDetail(boardId, postId);
 
         // then
