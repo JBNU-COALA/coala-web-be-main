@@ -37,6 +37,9 @@ dependencies {
     // swagger-ui
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.1'
 
+    // dotenv
+    implementation 'me.paulschwarz:spring-dotenv:4.0.0'
+
     // jwt
     implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
