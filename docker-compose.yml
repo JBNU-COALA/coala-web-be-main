@@ -1,11 +1,10 @@
 version: "3.8"
-
 services:
   swagger-server:
     build: .
     container_name: swagger-server
     ports:
-      - "8081:8080"
+      - "80:8080"
     environment:
       DB_URL: ${DB_URL}
       DB_USERNAME: ${DB_USERNAME}
@@ -15,15 +14,3 @@ services:
       REDIS_PORT: ${REDIS_PORT}
       REDIS_PASSWORD: ${REDIS_PASSWORD}
     restart: always
-
-  redis:
-    image: redis:7
-    container_name: redis
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis-data:/data
-    restart: always
-
-volumes:
-  redis-data:
