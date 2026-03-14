@@ -32,7 +32,7 @@ public class User extends BaseEntity {
     private String email;
 
     // 필수: 비밀번호
-    @Column(nullable = false, length = 255)
+    @Column(nullable = false)
     private String password;
 
     // 필수: 실명
@@ -42,6 +42,14 @@ public class User extends BaseEntity {
     // 선택: 닉네임
     @Column(length = 50)
     private String nickname;
+
+    // 선택: 백준 아이디
+    @Column(length = 50)
+    private String baekjoonId;
+
+    // 선택: GitHub 아이디
+    @Column(length = 50)
+    private String githubId;
 
     // 선택: 생년월일 (예: "1999-01-01")
     @Column(length = 10)
