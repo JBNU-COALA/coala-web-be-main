@@ -32,7 +32,7 @@ public class User extends BaseEntity {
     private String email;
 
     // 필수: 비밀번호
-    @Column(nullable = false, length = 255)
+    @Column(nullable = false)
     private String password;
 
     // 필수: 실명
