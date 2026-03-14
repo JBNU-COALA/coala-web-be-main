@@ -9,8 +9,6 @@ import org.springframework.data.repository.query.Param;
 
 public interface ResourceRepository extends JpaRepository<Resource, Long> {
 
-    List<Resource> findByPost(Post post);
-
     @Query("SELECT r FROM Resource r " +
             "JOIN FETCH r.user " +
             "JOIN FETCH r.post " +

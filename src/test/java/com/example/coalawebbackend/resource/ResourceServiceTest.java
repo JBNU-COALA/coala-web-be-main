@@ -55,12 +55,12 @@ class ResourceServiceTest {
         return mock(Post.class);
     }
 
-    private Resource makeResource(Long id) {
+    private Resource makeResource() {
         Post post = makePost();
-        given(post.getPostId()).willReturn(id);
+        given(post.getPostId()).willReturn(1L);
 
         Resource resource = mock(Resource.class);
-        given(resource.getId()).willReturn(id);
+        given(resource.getId()).willReturn(1L);
         given(resource.getPost()).willReturn(post);  // 추가
         given(resource.getFileName()).willReturn("file.pdf");
         given(resource.getFileUrl()).willReturn("https://example.com/file.pdf");
@@ -94,7 +94,7 @@ class ResourceServiceTest {
             Post post = makePost();
             given(post.getUser()).willReturn(owner);
 
-            Resource saved = makeResource(1L);
+            Resource saved = makeResource();
             given(resourceRepository.save(any(Resource.class))).willReturn(saved);
 
             // when
@@ -136,7 +136,7 @@ class ResourceServiceTest {
         void success() {
             // given
             Post post = makePost();
-            Resource resource = makeResource(1L);
+            Resource resource = makeResource();
 
             given(resourceRepository.findByPostWithFetch(post)).willReturn(List.of(resource));
 
