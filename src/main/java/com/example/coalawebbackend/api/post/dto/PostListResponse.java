@@ -1,6 +1,7 @@
 package com.example.coalawebbackend.api.post.dto;
 
 import com.example.coalawebbackend.domain.post.entity.Post;
+import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -15,6 +16,10 @@ public class PostListResponse {
     private Long boardId;
     private Long userId;
     private String title;
+    private String content;
+    private int viewCount;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 
     public static PostListResponse from(Post post) {
         return PostListResponse.builder()
@@ -22,6 +27,10 @@ public class PostListResponse {
                 .boardId(post.getBoard().getBoardId())
                 .userId(post.getUser().getId())
                 .title(post.getTitle())
+                .content(post.getContent())
+                .viewCount(post.getViewCount())
+                .createdAt(post.getCreatedAt())
+                .updatedAt(post.getUpdatedAt())
                 .build();
     }
 }
