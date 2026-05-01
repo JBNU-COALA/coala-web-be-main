@@ -3,6 +3,8 @@ package com.example.coalawebbackend.api.user.dto;
 import com.example.coalawebbackend.domain.user.entity.AcademicStatus;
 import com.example.coalawebbackend.domain.user.entity.Gender;
 import com.example.coalawebbackend.domain.user.entity.User;
+import com.fasterxml.jackson.annotation.JsonFormat;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -19,7 +21,8 @@ public class UserResponse {
     private String email;
     private String name;
     private String nickname;
-    private String birthDate;
+    @JsonFormat(pattern = "yyyy-MM-dd")
+    private LocalDate birthDate;
     private Gender gender;
     private String department;
     private String studentId;

@@ -29,23 +29,25 @@ public class Post extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "post_id")
     private Long postId;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(nullable = false)
+    @JoinColumn(name = "board_id", nullable = false)
     private Board board;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(nullable = false)
+    @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(nullable = false)
+    @Column(name = "title", nullable = false, length = 100)
     private String title;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(name = "content", columnDefinition = "TEXT")
     private String content;
 
-    @Column(nullable = false, columnDefinition = "integer default 0")
+    @Column(name = "view_count", nullable = false)
+    @Builder.Default
     private int viewCount = 0;
 
     public static Post create(String title, String content,
