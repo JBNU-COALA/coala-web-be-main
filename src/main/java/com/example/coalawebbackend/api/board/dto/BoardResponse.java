@@ -1,6 +1,7 @@
 package com.example.coalawebbackend.api.board.dto;
 
 import com.example.coalawebbackend.domain.board.entity.Board;
+import com.example.coalawebbackend.domain.board.entity.BoardType;
 import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -14,7 +15,7 @@ public class BoardResponse {
 
     private Long boardId;
     private String boardName;
-    private String boardType;
+    private BoardType boardType;
     private String description;
     private Boolean isActive;
     private LocalDateTime createdAt;

@@ -28,6 +28,7 @@ public class Resource extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "resource_id")
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
@@ -38,16 +39,16 @@ public class Resource extends BaseEntity {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(nullable = false)
+    @Column(name = "file_name", nullable = false, length = 255)
     private String fileName;
 
-    @Column(nullable = false)
+    @Column(name = "file_url", nullable = false, length = 500)
     private String fileUrl;
 
-    @Column(nullable = false)
+    @Column(name = "file_type", nullable = false, length = 50)
     private String fileType;
 
-    @Column(nullable = false)
+    @Column(name = "file_size", nullable = false)
     private Long fileSize;
 
     public static Resource create(Post post, User user, String fileName, String fileUrl, String fileType, Long fileSize) {

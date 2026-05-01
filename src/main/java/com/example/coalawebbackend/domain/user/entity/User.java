@@ -9,6 +9,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import java.time.LocalDate;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -17,7 +18,14 @@ import lombok.NoArgsConstructor;
 
 @Getter
 @Entity
-@Table(name = "users")
+@Table(
+        name = "users",
+        uniqueConstraints = {
+                @jakarta.persistence.UniqueConstraint(name = "uk_users_email", columnNames = "email"),
+                @jakarta.persistence.UniqueConstraint(name = "uk_users_student_id", columnNames = "student_id"),
+                @jakarta.persistence.UniqueConstraint(name = "uk_users_nickname", columnNames = "nickname")
+        }
+)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
@@ -25,54 +33,56 @@ public class User extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "user_id")
     private Long id;
 
     // 필수: 이메일 (로그인 아이디)
-    @Column(nullable = false, unique = true, length = 100)
+    @Column(name = "email", nullable = false, length = 100)
     private String email;
 
-    // 필수: 비밀번호
-    @Column(nullable = false)
+    // 필수: 비밀번호 (BCrypt 해시 = 60자, 향후 알고리즘 변경 대비 100)
+    @Column(name = "password", nullable = false, length = 100)
     private String password;
 
     // 필수: 실명
-    @Column(nullable = false, length = 50)
+    @Column(name = "name", nullable = false, length = 50)
     private String name;
 
-    // 선택: 닉네임
-    @Column(length = 50)
+    // 선택: 닉네임 (unique)
+    @Column(name = "nickname", length = 50)
     private String nickname;
 
     // 선택: 백준 아이디
-    @Column(length = 50)
+    @Column(name = "baekjoon_id", length = 50)
     private String baekjoonId;
 
     // 선택: GitHub 아이디
-    @Column(length = 50)
+    @Column(name = "github_id", length = 50)
     private String githubId;
 
-    // 선택: 생년월일 (예: "1999-01-01")
-    @Column(length = 10)
-    private String birthDate;
+    // 선택: 생년월일 (LocalDate 로 정규화)
+    @Column(name = "birth_date")
+    private LocalDate birthDate;
 
     // 선택: 성별
     @Enumerated(EnumType.STRING)
-    @Column(length = 10)
+    @Column(name = "gender", length = 10)
     private Gender gender;
 
     // 필수: 소속 학과/학부
-    @Column(nullable = false, length = 100)
+    @Column(name = "department", nullable = false, length = 100)
     private String department;
 
-    // 필수: 학번
-    @Column(nullable = false, length = 20)
+    // 필수: 학번 (unique)
+    @Column(name = "student_id", nullable = false, length = 20)
     private String studentId;
 
-    // 선택: 학년 (1~4)
+    // 선택: 학년 (1~6: 학부 + 대학원 고려)
+    @Column(name = "grade")
     private Integer grade;
 
     // 필수: 학적 상태
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
+    @Column(name = "academic_status", nullable = false, length = 20)
     private AcademicStatus academicStatus;
 }
