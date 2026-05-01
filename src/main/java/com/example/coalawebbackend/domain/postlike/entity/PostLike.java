@@ -23,7 +23,10 @@ import lombok.NoArgsConstructor;
 @Entity
 @Table(
         name = "post_likes",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "post_id"})
+        uniqueConstraints = @UniqueConstraint(
+                name = "uk_post_like_user_post",
+                columnNames = {"user_id", "post_id"}
+        )
 )
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
@@ -32,6 +35,7 @@ public class PostLike extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @jakarta.persistence.Column(name = "post_like_id")
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)

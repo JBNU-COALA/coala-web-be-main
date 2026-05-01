@@ -5,6 +5,7 @@ import com.example.coalawebbackend.api.board.dto.CreateBoardRequest;
 import com.example.coalawebbackend.api.board.dto.CreateBoardResponse;
 import com.example.coalawebbackend.api.board.dto.UpdateBoardRequest;
 import com.example.coalawebbackend.api.board.dto.UpdateBoardResponse;
+import com.example.coalawebbackend.domain.board.entity.Board;
 import com.example.coalawebbackend.domain.board.service.BoardService;
 import com.example.coalawebbackend.domain.user.entity.User;
 import com.example.coalawebbackend.domain.user.service.UserService;
@@ -28,6 +29,10 @@ public class BoardFacade {
 
     public List<BoardResponse> getBoards(Boolean isActive) {
         return boardService.getBoards(isActive);
+    }
+
+    public Board getBoard(Long boardId) {
+        return boardService.getBoardById(boardId);
     }
 
     @Transactional

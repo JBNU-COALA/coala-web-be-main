@@ -50,6 +50,15 @@ public class BoardController implements BoardControllerSpec{
                 .body(response);
     }
 
+    @GetMapping("/{boardId}")
+    public ResponseEntity<BoardResponse> getBoard(
+            @PathVariable Long boardId
+    ) {
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(BoardResponse.from(boardFacade.getBoard(boardId)));
+    }
+
     @PatchMapping("/{boardId}")
     public ResponseEntity<UpdateBoardResponse> updateBoard(
             @PathVariable Long boardId,
