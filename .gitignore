@@ -39,4 +39,6 @@ src/main/resources/application*.properties
 
 ### env ###
 .env
+src/main/resources/application-*.yaml
+src/main/resources/application-*.yml
 AGENTS.md
