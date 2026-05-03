@@ -10,8 +10,10 @@ import com.example.coalawebbackend.common.enums.ErrorCode;
 import com.example.coalawebbackend.common.exception.CustomException;
 import com.example.coalawebbackend.domain.board.entity.Board;
 import com.example.coalawebbackend.domain.board.service.BoardService;
+import com.example.coalawebbackend.domain.comment.repository.CommentRepository;
 import com.example.coalawebbackend.domain.post.entity.Post;
 import com.example.coalawebbackend.domain.post.repository.PostRepository;
+import com.example.coalawebbackend.domain.postlike.repository.PostLikeRepository;
 import com.example.coalawebbackend.domain.user.entity.User;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +26,8 @@ public class PostService {
 
     private final PostRepository postRepository;
     private final BoardService boardService;
+    private final CommentRepository commentRepository;
+    private final PostLikeRepository postLikeRepository;
 
     @Transactional
     public CreatePostResponse createPost(User user, Long boardId, PostRequest request) {
@@ -36,7 +40,7 @@ public class PostService {
     public List<PostListResponse> getPosts(Long boardId) {
         return postRepository.findByBoardBoardId(boardId)
                 .stream()
-                .map(PostListResponse::from)
+                .map(this::toPostListResponse)
                 .toList();
     }
 
@@ -50,7 +54,7 @@ public class PostService {
         postRepository.increaseViewCount(postId);
         Post updatedPost = postRepository.findById(postId)
                 .orElseThrow(() -> new CustomException(ErrorCode.POST_NOT_FOUND));
-        return PostDetailResponse.from(updatedPost);
+        return toPostDetailResponse(updatedPost);
     }
 
     @Transactional
@@ -78,5 +82,19 @@ public class PostService {
         if (!post.getUser().getId().equals(user.getId())) {
             throw new CustomException(ErrorCode.ACCESS_DENIED);
         }
+    }
+
+    private PostListResponse toPostListResponse(Post post) {
+        return PostListResponse.from(
+                post,
+                commentRepository.countByPost_PostId(post.getPostId()),
+                postLikeRepository.countByPost(post));
+    }
+
+    private PostDetailResponse toPostDetailResponse(Post post) {
+        return PostDetailResponse.from(
+                post,
+                commentRepository.countByPost_PostId(post.getPostId()),
+                postLikeRepository.countByPost(post));
     }
 }

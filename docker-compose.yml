@@ -1,15 +1,18 @@
 version: "3.8"
 services:
-  swagger-server:
+  coala-web-be-main:
     build: .
-    container_name: swagger-server
+    container_name: coala-web-be-main
     ports:
       - "80:8080"
     environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
       DB_URL: ${DB_URL}
       DB_USERNAME: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
+      APP_CORS_ALLOWED_ORIGINS: ${APP_CORS_ALLOWED_ORIGINS}
+      SWAGGER_ENABLED: ${SWAGGER_ENABLED:-false}
       REDIS_URL: ${REDIS_URL}
       REDIS_PORT: ${REDIS_PORT}
       REDIS_PASSWORD: ${REDIS_PASSWORD}

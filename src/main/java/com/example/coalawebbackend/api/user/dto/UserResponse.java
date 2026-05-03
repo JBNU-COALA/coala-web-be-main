@@ -27,6 +27,8 @@ public class UserResponse {
     private String department;
     private String studentId;
     private Integer grade;
+    private String githubId;
+    private String linkedinUrl;
     private AcademicStatus academicStatus;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -42,6 +44,8 @@ public class UserResponse {
                 .department(user.getDepartment())
                 .studentId(user.getStudentId())
                 .grade(user.getGrade())
+                .githubId(user.getGithubId())
+                .linkedinUrl(user.getLinkedinUrl())
                 .academicStatus(user.getAcademicStatus())
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())

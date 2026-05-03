@@ -48,12 +48,12 @@ public class UserCreateRequest {
     @Schema(example = "2000-01-01", type = "string", format = "date")
     private LocalDate birthDate;
 
+    @NotNull
     @Schema(example = "MALE", description = "MALE / FEMALE / OTHER / PREFER_NOT_TO_SAY")
     private Gender gender;
 
-    @NotBlank
     @Size(max = 100)
-    @Schema(example = "컴퓨터공학과")
+    @Schema(example = "컴퓨터공학과", description = "기존 호환용 선택 필드")
     private String department;
 
     @NotBlank
@@ -61,10 +61,26 @@ public class UserCreateRequest {
     @Schema(example = "202012345")
     private String studentId;
 
+    @NotNull
     @Min(1)
     @Max(6)
     @Schema(example = "3")
     private Integer grade;
+
+    @NotBlank
+    @Size(max = 39)
+    @Pattern(
+            regexp = "^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$",
+            message = "GitHub 아이디 형식이 올바르지 않습니다.")
+    @Schema(example = "coala-dev")
+    private String githubId;
+
+    @Size(max = 255)
+    @Pattern(
+            regexp = "^$|^https://(www\\.)?linkedin\\.com/in/[A-Za-z0-9_-]+/?$",
+            message = "LinkedIn 프로필 URL 형식이 올바르지 않습니다.")
+    @Schema(example = "https://www.linkedin.com/in/coala-dev")
+    private String linkedinUrl;
 
     @NotNull
     @Schema(example = "ENROLLED", description = "ENROLLED / ON_LEAVE / GRADUATED")
@@ -78,10 +94,24 @@ public class UserCreateRequest {
                 .nickname(nickname)
                 .birthDate(birthDate)
                 .gender(gender)
-                .department(department)
+                .department(normalizeDepartment())
                 .studentId(studentId)
                 .grade(grade)
+                .githubId(githubId.trim())
+                .linkedinUrl(normalizeOptional(linkedinUrl))
                 .academicStatus(academicStatus)
                 .build();
+    }
+
+    private String normalizeDepartment() {
+        return department == null || department.isBlank()
+                ? "미입력"
+                : department.trim();
+    }
+
+    private String normalizeOptional(String value) {
+        return value == null || value.isBlank()
+                ? null
+                : value.trim();
     }
 }

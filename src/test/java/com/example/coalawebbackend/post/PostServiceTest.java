@@ -17,9 +17,11 @@ import com.example.coalawebbackend.common.enums.ErrorCode;
 import com.example.coalawebbackend.common.exception.CustomException;
 import com.example.coalawebbackend.domain.board.entity.Board;
 import com.example.coalawebbackend.domain.board.service.BoardService;
+import com.example.coalawebbackend.domain.comment.repository.CommentRepository;
 import com.example.coalawebbackend.domain.post.entity.Post;
 import com.example.coalawebbackend.domain.post.repository.PostRepository;
 import com.example.coalawebbackend.domain.post.service.PostService;
+import com.example.coalawebbackend.domain.postlike.repository.PostLikeRepository;
 import com.example.coalawebbackend.domain.user.entity.User;
 import java.util.List;
 import java.util.Optional;
@@ -41,6 +43,12 @@ class PostServiceTest {
 
     @Mock
     private BoardService boardService;
+
+    @Mock
+    private CommentRepository commentRepository;
+
+    @Mock
+    private PostLikeRepository postLikeRepository;
 
     @Test
     @DisplayName("게시글 생성 성공")
@@ -73,7 +81,10 @@ class PostServiceTest {
 
         given(post.getBoard()).willReturn(board);
         given(post.getUser()).willReturn(user);
+        given(post.getPostId()).willReturn(1L);
         given(postRepository.findByBoardBoardId(1L)).willReturn(List.of(post));
+        given(commentRepository.countByPost_PostId(1L)).willReturn(2L);
+        given(postLikeRepository.countByPost(post)).willReturn(3L);
 
         // when
         List<PostListResponse> result = postService.getPosts(1L);
@@ -95,8 +106,11 @@ class PostServiceTest {
         Post post = mock(Post.class);
 
         given(board.getBoardId()).willReturn(boardId);
+        given(post.getPostId()).willReturn(postId);
         given(post.getBoard()).willReturn(board);
         given(post.getUser()).willReturn(user);
+        given(commentRepository.countByPost_PostId(postId)).willReturn(2L);
+        given(postLikeRepository.countByPost(post)).willReturn(3L);
 
         // when
         given(postRepository.findById(postId)).willReturn(Optional.of(post));

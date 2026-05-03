@@ -17,6 +17,7 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           port: ${{ secrets.SERVER_PORT }}
           script: |
+            set -e
             cd /home/ubuntu/coala-web-be-main
             git pull origin main
 
@@ -24,7 +25,9 @@ jobs:
             ./gradlew clean bootJar
 
             if docker compose version >/dev/null 2>&1; then
+              docker rm -f coala-web-be-main 2>/dev/null || true
               docker compose up -d --build
             else
+              docker rm -f coala-web-be-main 2>/dev/null || true
               docker-compose up -d --build
             fi

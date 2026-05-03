@@ -38,6 +38,8 @@ public class UserFacade {
                         .department(user.getDepartment())
                         .studentId(user.getStudentId())
                         .grade(user.getGrade())
+                        .githubId(user.getGithubId())
+                        .linkedinUrl(user.getLinkedinUrl())
                         .academicStatus(user.getAcademicStatus())
                         .build();
         User createdUser = userService.createUser(withEncodedPassword);
