@@ -19,7 +19,9 @@ jobs:
           script: |
             set -e
             cd /home/ubuntu/coala-web-be-main
-            git pull origin main
+            git fetch origin main
+            git checkout main
+            git reset --hard origin/main
 
             chmod +x ./gradlew
             ./gradlew clean bootJar
