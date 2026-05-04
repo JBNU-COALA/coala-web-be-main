@@ -15,7 +15,7 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USERNAME }}
           key: ${{ secrets.SSH_KEY }}
-          port: ${{ secrets.SERVER_PORT }}
+          port: 19231
           script: |
             set -e
             cd /home/ubuntu/coala-web-be-main
