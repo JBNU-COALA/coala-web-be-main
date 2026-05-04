@@ -5,6 +5,7 @@ import com.example.coalawebbackend.api.auth.dto.TokenInfo;
 import com.example.coalawebbackend.api.auth.dto.TokenRefreshRequest;
 import com.example.coalawebbackend.api.auth.dto.TokenResponse;
 import com.example.coalawebbackend.api.auth.exception.AuthException;
+import com.example.coalawebbackend.api.auth.service.EmailVerificationService;
 import com.example.coalawebbackend.api.user.dto.UserResponse;
 import com.example.coalawebbackend.common.enums.ErrorCode;
 import com.example.coalawebbackend.common.jwt.JwtTokenProvider;
@@ -31,6 +32,7 @@ public class AuthFacade {
     private final PasswordEncoder passwordEncoder;
     private final RefreshTokenStore refreshTokenStore;
     private final LogoutTokenStore logoutTokenStore;
+    private final EmailVerificationService emailVerificationService;
 
     @Transactional
     public TokenResponse login(LoginRequest request) {
@@ -42,6 +44,10 @@ public class AuthFacade {
 
         if (!passwordEncoder.matches(request.password(), user.getPassword())) {
             throw new AuthException(ErrorCode.INVALID_CREDENTIALS);
+        }
+        if (!user.isVerified()) {
+            emailVerificationService.issue(user);
+            throw new AuthException(ErrorCode.EMAIL_NOT_VERIFIED);
         }
 
         TokenInfo tokens =

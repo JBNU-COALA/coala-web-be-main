@@ -97,4 +97,12 @@ public class User extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "academic_status", nullable = false, length = 20)
     private AcademicStatus academicStatus;
+
+    @Builder.Default
+    @Column(name = "verified", nullable = false)
+    private boolean verified = false;
+
+    public void markVerified() {
+        this.verified = true;
+    }
 }

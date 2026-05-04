@@ -1,5 +1,8 @@
 package com.example.coalawebbackend.api.auth.controller;
 
+import com.example.coalawebbackend.api.auth.dto.EmailVerificationConfirmRequest;
+import com.example.coalawebbackend.api.auth.dto.EmailVerificationResendRequest;
+import com.example.coalawebbackend.api.auth.dto.EmailVerificationResponse;
 import com.example.coalawebbackend.api.auth.dto.LoginRequest;
 import com.example.coalawebbackend.api.auth.dto.TokenRefreshRequest;
 import com.example.coalawebbackend.api.auth.dto.TokenResponse;
@@ -49,4 +52,27 @@ public interface AuthControllerSpec {
         @ApiResponse(responseCode = "401", description = "토큰 없음 또는 만료", content = @Content)
     })
     ResponseEntity<Void> logout(jakarta.servlet.http.HttpServletRequest request);
+
+    @Operation(summary = "이메일 인증 메일 재발송", description = "미인증 계정에 이메일 인증번호를 다시 보냅니다.")
+    @ApiResponses({
+        @ApiResponse(
+                responseCode = "200",
+                description = "인증 메일 발송",
+                content = @Content(schema = @Schema(implementation = EmailVerificationResponse.class))),
+        @ApiResponse(responseCode = "404", description = "사용자 없음", content = @Content)
+    })
+    ResponseEntity<EmailVerificationResponse> resendEmailVerification(
+            EmailVerificationResendRequest request);
+
+    @Operation(summary = "이메일 인증 확인", description = "인증번호를 확인하고 사용자 이메일 인증 상태를 완료로 변경합니다.")
+    @ApiResponses({
+        @ApiResponse(
+                responseCode = "200",
+                description = "이메일 인증 완료",
+                content = @Content(schema = @Schema(implementation = EmailVerificationResponse.class))),
+        @ApiResponse(responseCode = "400", description = "인증번호 오류 또는 만료", content = @Content),
+        @ApiResponse(responseCode = "404", description = "사용자 없음", content = @Content)
+    })
+    ResponseEntity<EmailVerificationResponse> confirmEmailVerification(
+            EmailVerificationConfirmRequest request);
 }

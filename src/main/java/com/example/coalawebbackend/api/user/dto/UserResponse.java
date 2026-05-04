@@ -30,6 +30,7 @@ public class UserResponse {
     private String githubId;
     private String linkedinUrl;
     private AcademicStatus academicStatus;
+    private boolean verified;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -47,6 +48,7 @@ public class UserResponse {
                 .githubId(user.getGithubId())
                 .linkedinUrl(user.getLinkedinUrl())
                 .academicStatus(user.getAcademicStatus())
+                .verified(user.isVerified())
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
                 .build();

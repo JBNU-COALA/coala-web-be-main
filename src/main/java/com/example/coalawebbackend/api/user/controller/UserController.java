@@ -1,6 +1,6 @@
 package com.example.coalawebbackend.api.user.controller;
 
-import com.example.coalawebbackend.api.auth.dto.TokenResponse;
+import com.example.coalawebbackend.api.auth.dto.EmailVerificationResponse;
 import com.example.coalawebbackend.api.user.dto.UserCreateRequest;
 import com.example.coalawebbackend.api.user.facade.UserFacade;
 import jakarta.validation.Valid;
@@ -21,8 +21,8 @@ public class UserController implements UserControllerSpec {
 
     @PostMapping
     @Override
-    public ResponseEntity<TokenResponse> createUser(@Valid @RequestBody UserCreateRequest request) {
-        TokenResponse response = userFacade.createUser(request.toEntity());
+    public ResponseEntity<EmailVerificationResponse> createUser(@Valid @RequestBody UserCreateRequest request) {
+        EmailVerificationResponse response = userFacade.createUser(request.toEntity());
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 }

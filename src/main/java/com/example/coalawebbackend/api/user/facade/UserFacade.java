@@ -1,13 +1,9 @@
 package com.example.coalawebbackend.api.user.facade;
 
-import com.example.coalawebbackend.api.auth.dto.TokenInfo;
-import com.example.coalawebbackend.api.auth.dto.TokenResponse;
-import com.example.coalawebbackend.api.user.dto.UserResponse;
-import com.example.coalawebbackend.common.jwt.JwtTokenProvider;
-import com.example.coalawebbackend.common.jwt.RefreshTokenStore;
+import com.example.coalawebbackend.api.auth.dto.EmailVerificationResponse;
+import com.example.coalawebbackend.api.auth.service.EmailVerificationService;
 import com.example.coalawebbackend.domain.user.entity.User;
 import com.example.coalawebbackend.domain.user.service.UserService;
-import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -18,15 +14,12 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class UserFacade {
 
-    private static final String TOKEN_TYPE = "Bearer";
-
     private final UserService userService;
     private final PasswordEncoder passwordEncoder;
-    private final JwtTokenProvider jwtTokenProvider;
-    private final RefreshTokenStore refreshTokenStore;
+    private final EmailVerificationService emailVerificationService;
 
     @Transactional
-    public TokenResponse createUser(User user) {
+    public EmailVerificationResponse createUser(User user) {
         User withEncodedPassword =
                 User.builder()
                         .email(user.getEmail())
@@ -41,17 +34,11 @@ public class UserFacade {
                         .githubId(user.getGithubId())
                         .linkedinUrl(user.getLinkedinUrl())
                         .academicStatus(user.getAcademicStatus())
+                        .verified(false)
                         .build();
         User createdUser = userService.createUser(withEncodedPassword);
 
-        TokenInfo tokens =
-                jwtTokenProvider.generateTokenInfo(
-                        String.valueOf(createdUser.getId()), Map.of("email", createdUser.getEmail()));
-        refreshTokenStore.save(String.valueOf(createdUser.getId()), tokens.refreshToken());
-        return new TokenResponse(
-                tokens.accessToken(),
-                tokens.refreshToken(),
-                TOKEN_TYPE,
-                UserResponse.from(createdUser));
+        emailVerificationService.issue(createdUser);
+        return EmailVerificationResponse.from(createdUser, "인증 메일을 보냈습니다.");
     }
 }

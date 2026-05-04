@@ -1,9 +1,13 @@
 package com.example.coalawebbackend.api.auth.controller;
 
+import com.example.coalawebbackend.api.auth.dto.EmailVerificationConfirmRequest;
+import com.example.coalawebbackend.api.auth.dto.EmailVerificationResendRequest;
+import com.example.coalawebbackend.api.auth.dto.EmailVerificationResponse;
 import com.example.coalawebbackend.api.auth.dto.LoginRequest;
 import com.example.coalawebbackend.api.auth.dto.TokenRefreshRequest;
 import com.example.coalawebbackend.api.auth.dto.TokenResponse;
 import com.example.coalawebbackend.api.auth.facade.AuthFacade;
+import com.example.coalawebbackend.api.auth.service.EmailVerificationService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController implements AuthControllerSpec {
 
     private final AuthFacade authFacade;
+    private final EmailVerificationService emailVerificationService;
 
     @PostMapping("/login")
     @Override
@@ -43,6 +48,20 @@ public class AuthController implements AuthControllerSpec {
             authFacade.logout(token);
         }
         return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/email-verification/resend")
+    @Override
+    public ResponseEntity<EmailVerificationResponse> resendEmailVerification(
+            @Valid @RequestBody EmailVerificationResendRequest request) {
+        return ResponseEntity.ok(emailVerificationService.resend(request.email()));
+    }
+
+    @PostMapping("/email-verification/confirm")
+    @Override
+    public ResponseEntity<EmailVerificationResponse> confirmEmailVerification(
+            @Valid @RequestBody EmailVerificationConfirmRequest request) {
+        return ResponseEntity.ok(emailVerificationService.confirm(request.email(), request.code()));
     }
 
     private String resolveToken(HttpServletRequest request) {

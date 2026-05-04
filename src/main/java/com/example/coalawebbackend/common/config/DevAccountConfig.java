@@ -46,6 +46,7 @@ public class DevAccountConfig {
                     .grade(4)
                     .githubId("coala-test-2018")
                     .academicStatus(AcademicStatus.ENROLLED)
+                    .verified(true)
                     .build();
 
             userRepository.save(devUser);
