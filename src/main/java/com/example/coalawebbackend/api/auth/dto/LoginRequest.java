@@ -9,10 +9,10 @@ public record LoginRequest(
         @NotBlank(message = "이메일은 필수입니다.")
         @Email
         @Size(max = 100)
-        @Schema(example = "test@test.com")
+        @Schema(example = "name@jbnu.ac.kr")
         String email,
 
         @NotBlank(message = "비밀번호는 필수입니다.")
-        @Schema(example = "test1234")
+        @Schema(example = "password")
         String password
 ) {}
