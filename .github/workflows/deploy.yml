@@ -122,11 +122,34 @@ jobs:
             }
 
             ensure_container_running() {
-              sleep 25
-              if ! docker inspect -f '{{.State.Running}}' coala-web-be-main 2>/dev/null | grep -q true; then
-                docker logs --tail=200 coala-web-be-main 2>/dev/null || true
-                exit 1
-              fi
+              local container_name="coala-web-be-main"
+              local initial_restart_count inspect_output status running restart_count exit_code health
+
+              initial_restart_count="$(docker inspect -f '{{.RestartCount}}' "$container_name" 2>/dev/null || echo 0)"
+
+              for _ in $(seq 1 12); do
+                inspect_output="$(docker inspect -f '{{.State.Status}} {{.State.Running}} {{.RestartCount}} {{.State.ExitCode}} {{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$container_name" 2>/dev/null || echo 'missing false 0 1 none')"
+                read -r status running restart_count exit_code health <<< "$inspect_output"
+
+                if [ "$status" != "running" ] || [ "$running" != "true" ]; then
+                  docker logs --tail=200 "$container_name" 2>/dev/null || true
+                  exit 1
+                fi
+
+                if [ "$restart_count" -gt "$initial_restart_count" ]; then
+                  echo "Container entered a restart loop during deployment."
+                  docker logs --tail=200 "$container_name" 2>/dev/null || true
+                  exit 1
+                fi
+
+                if [ "$health" = "unhealthy" ]; then
+                  echo "Container reported unhealthy status during deployment."
+                  docker logs --tail=200 "$container_name" 2>/dev/null || true
+                  exit 1
+                fi
+
+                sleep 5
+              done
             }
 
             deploy_with_compose() {
