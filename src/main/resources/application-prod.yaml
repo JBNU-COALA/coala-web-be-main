@@ -26,3 +26,6 @@ app:
     allowed-origins: ${APP_CORS_ALLOWED_ORIGINS}
   security:
     swagger-enabled: false
+  seed:
+    dev-account:
+      enabled: false
