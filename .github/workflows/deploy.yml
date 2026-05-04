@@ -48,7 +48,7 @@ jobs:
 
             read_env_value() {
               [ -f .env ] || return 0
-              grep -E "^$1=" .env | tail -n 1 | sed "s/^$1=//"
+              sed -n "s/^$1=//p" .env | tail -n 1
             }
 
             if [ -n "${DB_URL:-}" ]; then
@@ -96,7 +96,7 @@ jobs:
               for name in DB_URL DB_USERNAME JWT_SECRET APP_CORS_ALLOWED_ORIGINS REDIS_URL REDIS_PORT; do
                 eval "value=\${$name:-}"
                 if [ -z "$value" ]; then
-                  echo "$name is required for deployment."
+                  echo "$name is required for deployment. Add it to the server .env file or GitHub Actions secrets."
                   exit 1
                 fi
               done
