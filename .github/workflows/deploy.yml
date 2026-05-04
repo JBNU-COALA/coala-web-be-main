@@ -3,21 +3,33 @@ name: Deploy Back Server
 on:
   push:
     branches: [ "main" ]
+  workflow_dispatch:
+    inputs:
+      reset_database:
+        description: "Drop the public schema and recreate it from the current backend entities."
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      RESET_DATABASE_ON_DEPLOY: ${{ contains(github.event.head_commit.message, '[reset-db]') || (github.event_name == 'workflow_dispatch' && inputs.reset_database == true) }}
 
     steps:
-      - name: 우분투 서버 접속 및 배포
+      - name: Deploy back server
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          RESET_DATABASE_ON_DEPLOY: ${{ env.RESET_DATABASE_ON_DEPLOY }}
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USERNAME }}
           key: ${{ secrets.SSH_KEY }}
           port: 19231
+          envs: RESET_DATABASE_ON_DEPLOY
           script: |
-            set -e
+            set -euo pipefail
             cd /home/ubuntu/coala-web-be-main
             git fetch origin main
             git checkout main
@@ -27,10 +39,53 @@ jobs:
             chmod +x ./gradlew
             ./gradlew clean bootJar
 
+            reset_schema() {
+              set -a
+              [ -f .env ] && . ./.env
+              set +a
+
+              if [ -z "${DB_URL:-}" ]; then
+                echo "DB_URL is required for database reset."
+                exit 1
+              fi
+
+              PSQL_URL="${DB_URL#jdbc:}"
+              if command -v psql >/dev/null 2>&1; then
+                PGPASSWORD="${DB_PASSWORD:-}" psql "$PSQL_URL" -U "${DB_USERNAME:-postgres}" -v ON_ERROR_STOP=1 \
+                  -c "DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public;"
+              else
+                docker run --rm -e PGPASSWORD="${DB_PASSWORD:-}" postgres:16-alpine \
+                  psql "$PSQL_URL" -U "${DB_USERNAME:-postgres}" -v ON_ERROR_STOP=1 \
+                  -c "DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public;"
+              fi
+            }
+
+            ensure_container_running() {
+              sleep 25
+              if ! docker inspect -f '{{.State.Running}}' coala-web-be-main 2>/dev/null | grep -q true; then
+                docker logs --tail=200 coala-web-be-main 2>/dev/null || true
+                exit 1
+              fi
+            }
+
+            deploy_with_compose() {
+              local compose_cmd="$1"
+              docker rm -f coala-web-be-main 2>/dev/null || true
+
+              if [ "${RESET_DATABASE_ON_DEPLOY:-false}" = "true" ]; then
+                echo "Resetting database schema and creating tables from backend entities."
+                reset_schema
+                SPRING_JPA_HIBERNATE_DDL_AUTO=create $compose_cmd up -d --build
+                ensure_container_running
+                docker rm -f coala-web-be-main 2>/dev/null || true
+              fi
+
+              SPRING_JPA_HIBERNATE_DDL_AUTO=validate $compose_cmd up -d --build
+              ensure_container_running
+            }
+
             if docker compose version >/dev/null 2>&1; then
-              docker rm -f coala-web-be-main 2>/dev/null || true
-              docker compose up -d --build
+              deploy_with_compose "docker compose"
             else
-              docker rm -f coala-web-be-main 2>/dev/null || true
-              docker-compose up -d --build
+              deploy_with_compose "docker-compose"
             fi
