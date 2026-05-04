@@ -28,4 +28,4 @@ app:
     swagger-enabled: false
   seed:
     dev-account:
-      enabled: false
+      enabled: ${APP_SEED_DEV_ACCOUNT_ENABLED:true}

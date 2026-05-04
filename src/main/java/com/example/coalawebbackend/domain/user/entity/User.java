@@ -105,4 +105,28 @@ public class User extends BaseEntity {
     public void markVerified() {
         this.verified = true;
     }
+
+    public void syncSeedAccount(
+            String password,
+            String name,
+            String nickname,
+            LocalDate birthDate,
+            Gender gender,
+            String department,
+            String studentId,
+            Integer grade,
+            String githubId,
+            AcademicStatus academicStatus) {
+        this.password = password;
+        this.name = name;
+        this.nickname = nickname;
+        this.birthDate = birthDate;
+        this.gender = gender;
+        this.department = department;
+        this.studentId = studentId;
+        this.grade = grade;
+        this.githubId = githubId;
+        this.academicStatus = academicStatus;
+        this.verified = true;
+    }
 }
