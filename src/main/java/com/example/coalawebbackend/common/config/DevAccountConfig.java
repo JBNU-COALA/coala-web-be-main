@@ -1,7 +1,6 @@
 package com.example.coalawebbackend.common.config;
 
 import com.example.coalawebbackend.domain.user.entity.AcademicStatus;
-import com.example.coalawebbackend.domain.user.entity.Gender;
 import com.example.coalawebbackend.domain.user.entity.User;
 import com.example.coalawebbackend.domain.user.repository.UserRepository;
 import java.time.LocalDate;
@@ -41,7 +40,7 @@ public class DevAccountConfig {
                                 "코알라",
                                 "coala-test-2018",
                                 LocalDate.of(2000, 1, 1),
-                                Gender.PREFER_NOT_TO_SAY,
+                                null,
                                 "컴퓨터인공지능학부",
                                 "20180001",
                                 4,
@@ -55,7 +54,7 @@ public class DevAccountConfig {
                             .name("코알라")
                             .nickname("coala-test-2018")
                             .birthDate(LocalDate.of(2000, 1, 1))
-                            .gender(Gender.PREFER_NOT_TO_SAY)
+                            .gender(null)
                             .department("컴퓨터인공지능학부")
                             .studentId("20180001")
                             .grade(4)
