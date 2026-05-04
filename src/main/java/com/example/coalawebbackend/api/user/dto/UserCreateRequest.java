@@ -26,8 +26,11 @@ public class UserCreateRequest {
 
     @NotBlank
     @Email
+    @Pattern(
+            regexp = "^[A-Za-z0-9._%+-]+@jbnu\\.ac\\.kr$",
+            message = "전북대학교 이메일(@jbnu.ac.kr)만 사용할 수 있습니다.")
     @Size(max = 100)
-    @Schema(example = "user@example.com")
+    @Schema(example = "user@jbnu.ac.kr")
     private String email;
 
     @NotBlank
@@ -88,7 +91,7 @@ public class UserCreateRequest {
 
     public User toEntity() {
         return User.builder()
-                .email(email)
+                .email(normalizeEmail())
                 .password(password)
                 .name(name)
                 .nickname(nickname)
@@ -107,6 +110,10 @@ public class UserCreateRequest {
         return department == null || department.isBlank()
                 ? "미입력"
                 : department.trim();
+    }
+
+    private String normalizeEmail() {
+        return email.trim().toLowerCase();
     }
 
     private String normalizeOptional(String value) {

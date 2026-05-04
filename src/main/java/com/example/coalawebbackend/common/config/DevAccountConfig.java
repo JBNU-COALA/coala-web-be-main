@@ -18,7 +18,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 @RequiredArgsConstructor
 public class DevAccountConfig {
 
-    private static final String DEV_LOGIN_ID = "test";
+    private static final String DEV_EMAIL = "test@test.com";
     private static final String DEV_PASSWORD = "test1234";
 
     private final UserRepository userRepository;
@@ -30,21 +30,21 @@ public class DevAccountConfig {
     @Bean
     public ApplicationRunner devAccountRunner() {
         return args -> {
-            if (!enabled || userRepository.existsByEmail(DEV_LOGIN_ID)) {
+            if (!enabled || userRepository.existsByEmail(DEV_EMAIL)) {
                 return;
             }
 
             User devUser = User.builder()
-                    .email(DEV_LOGIN_ID)
+                    .email(DEV_EMAIL)
                     .password(passwordEncoder.encode(DEV_PASSWORD))
                     .name("코알라")
-                    .nickname("coala-test")
+                    .nickname("coala-test-2018")
                     .birthDate(LocalDate.of(2000, 1, 1))
                     .gender(Gender.PREFER_NOT_TO_SAY)
                     .department("컴퓨터인공지능학부")
-                    .studentId("20180000")
+                    .studentId("20180001")
                     .grade(4)
-                    .githubId("coala-test")
+                    .githubId("coala-test-2018")
                     .academicStatus(AcademicStatus.ENROLLED)
                     .build();
 

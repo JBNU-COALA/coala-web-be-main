@@ -34,9 +34,10 @@ public class AuthFacade {
 
     @Transactional
     public TokenResponse login(LoginRequest request) {
+        String email = request.email().trim().toLowerCase();
         User user =
                 userRepository
-                        .findByEmail(request.email())
+                        .findByEmail(email)
                         .orElseThrow(() -> new AuthException(ErrorCode.INVALID_CREDENTIALS));
 
         if (!passwordEncoder.matches(request.password(), user.getPassword())) {
