@@ -51,6 +51,7 @@ public class BoardController implements BoardControllerSpec{
     }
 
     @GetMapping("/{boardId}")
+    @Override
     public ResponseEntity<BoardResponse> getBoard(
             @PathVariable Long boardId
     ) {

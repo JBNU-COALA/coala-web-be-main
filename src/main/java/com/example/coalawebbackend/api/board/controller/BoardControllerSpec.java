@@ -45,6 +45,16 @@ public interface BoardControllerSpec {
             @RequestParam(required = false) Boolean isActive
     );
 
+    @Operation(summary = "게시판 단건 조회", description = "게시판 ID로 게시판 정보를 조회합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "조회 성공",
+                    content = @Content(schema = @Schema(implementation = BoardResponse.class))),
+            @ApiResponse(responseCode = "404", description = "게시판을 찾을 수 없음")
+    })
+    ResponseEntity<BoardResponse> getBoard(
+            @PathVariable Long boardId
+    );
+
     @Operation(summary = "게시판 수정", description = "게시판 정보를 수정합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "수정 성공",

@@ -12,6 +12,7 @@ import com.example.coalawebbackend.common.jwt.LogoutTokenStore;
 import com.example.coalawebbackend.common.jwt.RefreshTokenStore;
 import com.example.coalawebbackend.domain.user.entity.User;
 import com.example.coalawebbackend.domain.user.repository.UserRepository;
+import io.jsonwebtoken.JwtException;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -33,9 +34,10 @@ public class AuthFacade {
 
     @Transactional
     public TokenResponse login(LoginRequest request) {
+        String email = request.email().trim().toLowerCase();
         User user =
                 userRepository
-                        .findByEmail(request.email())
+                        .findByEmail(email)
                         .orElseThrow(() -> new AuthException(ErrorCode.INVALID_CREDENTIALS));
 
         if (!passwordEncoder.matches(request.password(), user.getPassword())) {
@@ -89,7 +91,13 @@ public class AuthFacade {
 
     @Transactional
     public void logout(String accessToken) {
-        String userId = jwtTokenProvider.getSubject(accessToken);
+        String userId;
+        try {
+            userId = jwtTokenProvider.getSubject(accessToken);
+        } catch (JwtException | IllegalArgumentException e) {
+            return;
+        }
+
         long ttlMillis = jwtTokenProvider.getRemainingExpirationMillis(accessToken);
         logoutTokenStore.add(accessToken, ttlMillis);
         refreshTokenStore.delete(userId);
