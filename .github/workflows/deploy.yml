@@ -110,6 +110,7 @@ jobs:
               require_runtime_env
 
               PSQL_URL="${DB_URL#jdbc:}"
+              PSQL_URL="${PSQL_URL%%\?*}"
               if command -v psql >/dev/null 2>&1; then
                 PGPASSWORD="${DB_PASSWORD:-}" psql "$PSQL_URL" -U "${DB_USERNAME:-postgres}" -v ON_ERROR_STOP=1 \
                   -c "DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public;"
