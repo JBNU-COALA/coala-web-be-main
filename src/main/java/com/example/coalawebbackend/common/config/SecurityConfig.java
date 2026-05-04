@@ -46,6 +46,7 @@ public class SecurityConfig {
                                     "/api/boards/*",
                                     "/api/boards/*/posts",
                                     "/api/boards/*/posts/*",
+                                    "/api/github/public-activity",
                                     "/api/posts/*/comments",
                                     "/api/posts/*/resources"
                             ).permitAll()
