@@ -36,7 +36,7 @@ public class AuthFacade {
         User user =
                 userRepository
                         .findByEmail(request.email())
-                        .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
+                        .orElseThrow(() -> new AuthException(ErrorCode.INVALID_CREDENTIALS));
 
         if (!passwordEncoder.matches(request.password(), user.getPassword())) {
             throw new AuthException(ErrorCode.INVALID_CREDENTIALS);
@@ -71,6 +71,10 @@ public class AuthFacade {
                 userRepository
                         .findById(userId)
                         .orElseThrow(() -> new AuthException(ErrorCode.USER_NOT_FOUND));
+
+        if (!refreshTokenStore.validate(String.valueOf(userId), request.refreshToken())) {
+            throw new AuthException(ErrorCode.INVALID_REFRESH_TOKEN);
+        }
 
         TokenInfo tokens =
                 jwtTokenProvider.generateTokenInfo(

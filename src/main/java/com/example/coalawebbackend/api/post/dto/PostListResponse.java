@@ -20,10 +20,16 @@ public class PostListResponse {
     private String title;
     private String content;
     private int viewCount;
+    private long commentCount;
+    private long likeCount;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
     public static PostListResponse from(Post post) {
+        return from(post, 0, 0);
+    }
+
+    public static PostListResponse from(Post post, long commentCount, long likeCount) {
         String nickname = post.getUser().getNickname();
         String displayName = (nickname != null && !nickname.isBlank())
                 ? nickname
@@ -38,6 +44,8 @@ public class PostListResponse {
                 .title(post.getTitle())
                 .content(post.getContent())
                 .viewCount(post.getViewCount())
+                .commentCount(commentCount)
+                .likeCount(likeCount)
                 .createdAt(post.getCreatedAt())
                 .updatedAt(post.getUpdatedAt())
                 .build();

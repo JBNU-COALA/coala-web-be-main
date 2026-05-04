@@ -17,6 +17,7 @@ public class UserService {
 
     @Transactional
     public User createUser(User user) {
+        validateUniqueUser(user);
         return userRepository.save(user);
     }
 
@@ -26,6 +27,24 @@ public class UserService {
                     .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
         } catch (NumberFormatException e) {
             throw new CustomException(ErrorCode.INVALID_USER_ID);
+        }
+    }
+
+    private void validateUniqueUser(User user) {
+        if (userRepository.existsByEmail(user.getEmail())) {
+            throw new CustomException(ErrorCode.DUPLICATE_EMAIL);
+        }
+        if (userRepository.existsByStudentId(user.getStudentId())) {
+            throw new CustomException(ErrorCode.DUPLICATE_STUDENT_ID);
+        }
+        if (userRepository.existsByGithubId(user.getGithubId())) {
+            throw new CustomException(ErrorCode.DUPLICATE_GITHUB_ID);
+        }
+        String linkedinUrl = user.getLinkedinUrl();
+        if (linkedinUrl != null
+                && !linkedinUrl.isBlank()
+                && userRepository.existsByLinkedinUrl(linkedinUrl)) {
+            throw new CustomException(ErrorCode.DUPLICATE_LINKEDIN_URL);
         }
     }
 }

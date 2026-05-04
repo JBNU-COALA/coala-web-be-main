@@ -8,7 +8,9 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import java.time.LocalDate;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -21,9 +23,15 @@ import lombok.NoArgsConstructor;
 @Table(
         name = "users",
         uniqueConstraints = {
-                @jakarta.persistence.UniqueConstraint(name = "uk_users_email", columnNames = "email"),
-                @jakarta.persistence.UniqueConstraint(name = "uk_users_student_id", columnNames = "student_id"),
-                @jakarta.persistence.UniqueConstraint(name = "uk_users_nickname", columnNames = "nickname")
+                @UniqueConstraint(name = "uk_users_email", columnNames = "email"),
+                @UniqueConstraint(name = "uk_users_student_id", columnNames = "student_id"),
+                @UniqueConstraint(name = "uk_users_nickname", columnNames = "nickname"),
+                @UniqueConstraint(name = "uk_users_github_id", columnNames = "github_id"),
+                @UniqueConstraint(name = "uk_users_linkedin_url", columnNames = "linkedin_url")
+        },
+        indexes = {
+                @Index(name = "idx_users_academic_status", columnList = "academic_status"),
+                @Index(name = "idx_users_grade", columnList = "grade")
         }
 )
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -56,9 +64,13 @@ public class User extends BaseEntity {
     @Column(name = "baekjoon_id", length = 50)
     private String baekjoonId;
 
-    // 선택: GitHub 아이디
-    @Column(name = "github_id", length = 50)
+    // 필수: GitHub 아이디
+    @Column(name = "github_id", nullable = false, length = 39)
     private String githubId;
+
+    // 선택: LinkedIn 프로필 URL
+    @Column(name = "linkedin_url", length = 255)
+    private String linkedinUrl;
 
     // 선택: 생년월일 (LocalDate 로 정규화)
     @Column(name = "birth_date")

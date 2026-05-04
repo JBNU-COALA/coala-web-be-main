@@ -1,8 +1,10 @@
 package com.example.coalawebbackend.common.config;
 
 import com.example.coalawebbackend.common.jwt.JwtAuthenticationFilter;
+import java.util.Arrays;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -25,32 +27,45 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
+    @Value("${app.cors.allowed-origins:http://localhost:3000,http://127.0.0.1:3000}")
+    private String allowedOrigins;
+
+    @Value("${app.security.swagger-enabled:true}")
+    private boolean swaggerEnabled;
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .cors(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers(HttpMethod.GET,
-                                "/api/boards",
-                                "/api/boards/*",
-                                "/api/boards/*/posts",
-                                "/api/boards/*/posts/*",
-                                "/api/posts/*/comments",
-                                "/api/posts/*/resources"
-                        ).permitAll()
-                        .requestMatchers(
+                .authorizeHttpRequests(auth -> {
+                    auth
+                            .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                            .requestMatchers(HttpMethod.GET,
+                                    "/api/boards",
+                                    "/api/boards/*",
+                                    "/api/boards/*/posts",
+                                    "/api/boards/*/posts/*",
+                                    "/api/posts/*/comments",
+                                    "/api/posts/*/resources"
+                            ).permitAll()
+                            .requestMatchers(
+                                    "/api/auth/signup",
+                                    "/api/auth/login",
+                                    "/api/auth/refresh",
+                                    "/api/auth/logout"
+                            ).permitAll();
+
+                    if (swaggerEnabled) {
+                        auth.requestMatchers(
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
-                                "/swagger-ui.html",
-                                "/api/auth/signup",
-                                "/api/auth/login",
-                                "/api/auth/refresh",
-                                "/api/auth/logout"
-                        ).permitAll()
-                        .anyRequest().authenticated()
-                )
+                                "/swagger-ui.html"
+                        ).permitAll();
+                    }
+
+                    auth.anyRequest().authenticated();
+                })
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
@@ -60,8 +75,7 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // TODO: 필요 시 특정 Origin으로 제한
-        configuration.setAllowedOriginPatterns(List.of("*"));
+        configuration.setAllowedOrigins(parseAllowedOrigins());
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
@@ -74,5 +88,12 @@ public class SecurityConfig {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+
+    private List<String> parseAllowedOrigins() {
+        return Arrays.stream(allowedOrigins.split(","))
+                .map(String::trim)
+                .filter(origin -> !origin.isBlank())
+                .toList();
     }
 }
