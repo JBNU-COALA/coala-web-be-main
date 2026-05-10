@@ -16,6 +16,9 @@ spring:
       hibernate:
         format_sql: ${JPA_FORMAT_SQL:true}
 
+  flyway:
+    enabled: ${FLYWAY_ENABLED:false}
+
   data:
     redis:
       host: ${REDIS_URL:127.0.0.1}
