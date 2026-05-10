@@ -24,6 +24,8 @@ spring:
       host: ${REDIS_URL:127.0.0.1}
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:}
+      repositories:
+        enabled: false
 
   mail:
     host: ${MAIL_SERVER:smtp.gmail.com}
