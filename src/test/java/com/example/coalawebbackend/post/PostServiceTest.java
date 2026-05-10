@@ -5,6 +5,7 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 
@@ -15,10 +16,16 @@ import com.example.coalawebbackend.api.post.dto.PostRequest;
 import com.example.coalawebbackend.api.post.dto.UpdatePostResponse;
 import com.example.coalawebbackend.common.enums.ErrorCode;
 import com.example.coalawebbackend.common.exception.CustomException;
+import com.example.coalawebbackend.domain.attachment.service.AttachmentService;
 import com.example.coalawebbackend.domain.board.entity.Board;
 import com.example.coalawebbackend.domain.board.service.BoardService;
 import com.example.coalawebbackend.domain.comment.repository.CommentRepository;
+import com.example.coalawebbackend.domain.moderation.entity.PostHistory;
+import com.example.coalawebbackend.domain.moderation.repository.PostHistoryRepository;
+import com.example.coalawebbackend.domain.moderation.service.ContentSafetyService;
+import com.example.coalawebbackend.domain.moderation.service.PermissionService;
 import com.example.coalawebbackend.domain.post.entity.Post;
+import com.example.coalawebbackend.domain.post.entity.PostStatus;
 import com.example.coalawebbackend.domain.post.repository.PostRepository;
 import com.example.coalawebbackend.domain.post.service.PostService;
 import com.example.coalawebbackend.domain.postlike.repository.PostLikeRepository;
@@ -49,6 +56,18 @@ class PostServiceTest {
 
     @Mock
     private PostLikeRepository postLikeRepository;
+
+    @Mock
+    private PostHistoryRepository postHistoryRepository;
+
+    @Mock
+    private PermissionService permissionService;
+
+    @Mock
+    private ContentSafetyService contentSafetyService;
+
+    @Mock
+    private AttachmentService attachmentService;
 
     @Test
     @DisplayName("게시글 생성 성공")
@@ -82,7 +101,8 @@ class PostServiceTest {
         given(post.getBoard()).willReturn(board);
         given(post.getUser()).willReturn(user);
         given(post.getPostId()).willReturn(1L);
-        given(postRepository.findByBoardBoardId(1L)).willReturn(List.of(post));
+        given(postRepository.findByBoardBoardIdAndStatusOrderByCreatedAtDesc(1L, PostStatus.ACTIVE))
+                .willReturn(List.of(post));
         given(commentRepository.countByPost_PostId(1L)).willReturn(2L);
         given(postLikeRepository.countByPost(post)).willReturn(3L);
 
@@ -91,7 +111,8 @@ class PostServiceTest {
 
         // then
         assertThat(result).hasSize(1);
-        then(postRepository).should(times(1)).findByBoardBoardId(1L);
+        then(postRepository).should(times(1))
+                .findByBoardBoardIdAndStatusOrderByCreatedAtDesc(1L, PostStatus.ACTIVE);
     }
 
     @Test
@@ -113,6 +134,7 @@ class PostServiceTest {
         given(postLikeRepository.countByPost(post)).willReturn(3L);
 
         // when
+        given(postRepository.findByPostIdAndStatus(postId, PostStatus.ACTIVE)).willReturn(Optional.of(post));
         given(postRepository.findById(postId)).willReturn(Optional.of(post));
 
         PostDetailResponse response = postService.getPostDetail(boardId, postId);
@@ -151,7 +173,7 @@ class PostServiceTest {
 
         given(board.getBoardId()).willReturn(otherBoardId);
         given(post.getBoard()).willReturn(board);
-        given(postRepository.findById(postId)).willReturn(Optional.of(post));
+        given(postRepository.findByPostIdAndStatus(postId, PostStatus.ACTIVE)).willReturn(Optional.of(post));
 
         assertThatThrownBy(() -> postService.getPostDetail(boardId, postId))
                 .isInstanceOf(CustomException.class)
@@ -167,13 +189,9 @@ class PostServiceTest {
         // given
         Long postId = 1L;
         User user = mock(User.class);
-        User postOwner = mock(User.class);
         Post post = mock(Post.class);
         PostRequest request = mock(PostRequest.class);
 
-        given(user.getId()).willReturn(1L);
-        given(postOwner.getId()).willReturn(1L);
-        given(post.getUser()).willReturn(postOwner);
         given(postRepository.findById(postId)).willReturn(Optional.of(post));
 
         // when
@@ -182,6 +200,7 @@ class PostServiceTest {
         // then
         assertThat(response).isNotNull();
         then(post).should(times(1)).update(request.getTitle(), request.getContent());
+        then(postHistoryRepository).should(times(1)).save(any(PostHistory.class));
     }
 
     @Test
@@ -205,15 +224,13 @@ class PostServiceTest {
     void updatePost_fail_accessDenied() {
         // given
         Long postId = 1L;
-        User owner = mock(User.class);
         User other = mock(User.class);
         Post post = mock(Post.class);
         PostRequest request = mock(PostRequest.class);
 
-        given(owner.getId()).willReturn(1L);
-        given(other.getId()).willReturn(2L);
-        given(post.getUser()).willReturn(owner);
         given(postRepository.findById(postId)).willReturn(Optional.of(post));
+        willThrow(new CustomException(ErrorCode.ACCESS_DENIED))
+                .given(permissionService).assertCanUpdatePost(other, post);
 
         // when & then
         assertThatThrownBy(() -> postService.updatePost(postId, request, other))
@@ -228,19 +245,17 @@ class PostServiceTest {
         // given
         Long postId = 1L;
         User user = mock(User.class);
-        User postOwner = mock(User.class);
         Post post = mock(Post.class);
 
-        given(user.getId()).willReturn(1L);
-        given(postOwner.getId()).willReturn(1L);
-        given(post.getUser()).willReturn(postOwner);
         given(postRepository.findById(postId)).willReturn(Optional.of(post));
 
         // when
         postService.deletePost(postId, user);
 
         // then
-        then(postRepository).should(times(1)).delete(post);
+        then(permissionService).should(times(1)).assertCanUserDeletePost(user, post);
+        then(postHistoryRepository).should(times(1)).save(any(PostHistory.class));
+        then(post).should(times(1)).softDelete(user, "사용자 삭제", false);
     }
 
     @Test
@@ -248,14 +263,12 @@ class PostServiceTest {
     void deletePost_fail_accessDenied() {
         // given
         Long postId = 1L;
-        User owner = mock(User.class);
         User other = mock(User.class);
         Post post = mock(Post.class);
 
-        given(owner.getId()).willReturn(1L);
-        given(other.getId()).willReturn(2L);
-        given(post.getUser()).willReturn(owner);
         given(postRepository.findById(postId)).willReturn(Optional.of(post));
+        willThrow(new CustomException(ErrorCode.ACCESS_DENIED))
+                .given(permissionService).assertCanUserDeletePost(other, post);
 
         // when & then
         assertThatThrownBy(() -> postService.deletePost(postId, other))

@@ -6,6 +6,8 @@ import com.example.coalawebbackend.common.enums.ErrorCode;
 import com.example.coalawebbackend.common.exception.CustomException;
 import com.example.coalawebbackend.domain.memberservice.entity.MemberService;
 import com.example.coalawebbackend.domain.memberservice.repository.MemberServiceRepository;
+import com.example.coalawebbackend.domain.moderation.service.PermissionService;
+import com.example.coalawebbackend.domain.user.entity.User;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class MemberServiceCatalogService {
 
     private final MemberServiceRepository memberServiceRepository;
+    private final PermissionService permissionService;
 
     public List<MemberServiceResponse> getServices() {
         return memberServiceRepository.findAllByOrderByTitleAsc()
@@ -27,7 +30,8 @@ public class MemberServiceCatalogService {
     }
 
     @Transactional
-    public MemberServiceResponse createService(MemberServiceRequest request) {
+    public MemberServiceResponse createService(User actor, MemberServiceRequest request) {
+        permissionService.assertModerator(actor);
         String id = generateId(request.title());
         MemberService entity = MemberService.builder()
                 .id(id)
@@ -53,6 +57,30 @@ public class MemberServiceCatalogService {
     public MemberServiceResponse getService(String id) {
         return memberServiceRepository.findById(id)
                 .map(this::toResponse)
+                .orElseThrow(() -> new CustomException(ErrorCode.RESOURCE_NOT_FOUND));
+    }
+
+    @Transactional
+    public MemberServiceResponse updateService(User actor, String id, MemberServiceRequest request) {
+        permissionService.assertModerator(actor);
+        MemberService service = getServiceEntity(id);
+        service.updateCatalog(
+                request.title(),
+                request.category(),
+                request.summary(),
+                normalizeUrl(request.url()),
+                request.tags());
+        return toResponse(service);
+    }
+
+    @Transactional
+    public void retireService(User actor, String id) {
+        permissionService.assertModerator(actor);
+        getServiceEntity(id).retire();
+    }
+
+    private MemberService getServiceEntity(String id) {
+        return memberServiceRepository.findById(id)
                 .orElseThrow(() -> new CustomException(ErrorCode.RESOURCE_NOT_FOUND));
     }
 

@@ -1,6 +1,7 @@
 package com.example.coalawebbackend.api.post.dto;
 
 import com.example.coalawebbackend.domain.post.entity.Post;
+import com.example.coalawebbackend.domain.post.entity.PostStatus;
 import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -19,6 +20,9 @@ public class PostListResponse {
     private String authorName;     // 작성자 표시명 (nickname 우선, 없으면 name)
     private String title;
     private String content;
+    private PostStatus status;
+    private boolean locked;
+    private boolean notice;
     private int viewCount;
     private long commentCount;
     private long likeCount;
@@ -43,6 +47,9 @@ public class PostListResponse {
                 .authorName(displayName)
                 .title(post.getTitle())
                 .content(post.getContent())
+                .status(post.getStatus())
+                .locked(post.isLocked())
+                .notice(post.isNotice())
                 .viewCount(post.getViewCount())
                 .commentCount(commentCount)
                 .likeCount(likeCount)

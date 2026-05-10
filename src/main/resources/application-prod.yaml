@@ -29,3 +29,5 @@ app:
   seed:
     dev-account:
       enabled: ${APP_SEED_DEV_ACCOUNT_ENABLED:false}
+  storage:
+    root-path: ${APP_STORAGE_ROOT_PATH:/data/uploads}

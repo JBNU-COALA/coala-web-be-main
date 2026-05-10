@@ -7,6 +7,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.mock;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.BDDMockito.times;
+import static org.mockito.BDDMockito.willThrow;
 
 import com.example.coalawebbackend.api.comment.dto.CommentResponse;
 import com.example.coalawebbackend.api.comment.dto.CreateCommentRequest;
@@ -16,8 +17,14 @@ import com.example.coalawebbackend.api.comment.dto.UpdateCommentResponse;
 import com.example.coalawebbackend.common.enums.ErrorCode;
 import com.example.coalawebbackend.common.exception.CustomException;
 import com.example.coalawebbackend.domain.comment.entity.Comment;
+import com.example.coalawebbackend.domain.comment.entity.CommentStatus;
 import com.example.coalawebbackend.domain.comment.repository.CommentRepository;
 import com.example.coalawebbackend.domain.comment.service.CommentService;
+import com.example.coalawebbackend.domain.commentlike.repository.CommentLikeRepository;
+import com.example.coalawebbackend.domain.moderation.entity.CommentHistory;
+import com.example.coalawebbackend.domain.moderation.repository.CommentHistoryRepository;
+import com.example.coalawebbackend.domain.moderation.service.ContentSafetyService;
+import com.example.coalawebbackend.domain.moderation.service.PermissionService;
 import com.example.coalawebbackend.domain.post.entity.Post;
 import com.example.coalawebbackend.domain.user.entity.User;
 import java.util.List;
@@ -38,6 +45,17 @@ class CommentServiceTest {
     @Mock
     private CommentRepository commentRepository;
 
+    @Mock
+    private CommentLikeRepository commentLikeRepository;
+
+    @Mock
+    private CommentHistoryRepository commentHistoryRepository;
+
+    @Mock
+    private PermissionService permissionService;
+
+    @Mock
+    private ContentSafetyService contentSafetyService;
 
     @Test
     @DisplayName("댓글 생성 성공")
@@ -67,8 +85,12 @@ class CommentServiceTest {
         Post post = mock(Post.class);
         User user = mock(User.class);
         Comment comment = Comment.create(post, user, "테스트 댓글");
+        List<CommentStatus> visibleStatuses = List.of(
+                CommentStatus.ACTIVE,
+                CommentStatus.DELETED,
+                CommentStatus.ADMIN_DELETED);
 
-        given(commentRepository.findByPost_PostIdAndParentIsNullOrderByCreatedAtAsc(postId))
+        given(commentRepository.findVisibleParents(postId, visibleStatuses))
                 .willReturn(List.of(comment));
 
         // when
@@ -76,7 +98,7 @@ class CommentServiceTest {
 
         // then
         assertThat(responses).hasSize(1);
-        then(commentRepository).should(times(1)).findByPost_PostIdAndParentIsNullOrderByCreatedAtAsc(postId);
+        then(commentRepository).should(times(1)).findVisibleParents(postId, visibleStatuses);
     }
 
     @Test
@@ -84,7 +106,11 @@ class CommentServiceTest {
     void getComments_empty() {
         // given
         Long postId = 1L;
-        given(commentRepository.findByPost_PostIdAndParentIsNullOrderByCreatedAtAsc(postId))
+        List<CommentStatus> visibleStatuses = List.of(
+                CommentStatus.ACTIVE,
+                CommentStatus.DELETED,
+                CommentStatus.ADMIN_DELETED);
+        given(commentRepository.findVisibleParents(postId, visibleStatuses))
                 .willReturn(List.of());
 
         // when
@@ -108,7 +134,6 @@ class CommentServiceTest {
         UpdateCommentRequest request = mock(UpdateCommentRequest.class);
 
         given(post.getPostId()).willReturn(postId);
-        given(user.getId()).willReturn(1L);
         given(commentRepository.findById(commentId)).willReturn(Optional.of(comment));
         given(request.getContent()).willReturn("수정된 댓글");
 
@@ -117,6 +142,7 @@ class CommentServiceTest {
 
         // then
         assertThat(response).isNotNull();
+        then(commentHistoryRepository).should(times(1)).save(any(CommentHistory.class));
     }
 
     @Test
@@ -180,9 +206,9 @@ class CommentServiceTest {
         UpdateCommentRequest request = mock(UpdateCommentRequest.class);
 
         given(post.getPostId()).willReturn(postId);
-        given(owner.getId()).willReturn(1L);
-        given(other.getId()).willReturn(2L);
         given(commentRepository.findById(commentId)).willReturn(Optional.of(comment));
+        willThrow(new CustomException(ErrorCode.ACCESS_DENIED))
+                .given(permissionService).assertCanUpdateComment(other, comment);
 
         // when & then
         assertThatThrownBy(() ->
@@ -206,14 +232,15 @@ class CommentServiceTest {
         Comment comment = Comment.create(post, user, "테스트 댓글");
 
         given(post.getPostId()).willReturn(postId);
-        given(user.getId()).willReturn(1L);
         given(commentRepository.findById(commentId)).willReturn(Optional.of(comment));
 
         // when
         commentService.deleteComment(postId, commentId, user);
 
         // then
-        then(commentRepository).should(times(1)).delete(comment);
+        assertThat(comment.getStatus()).isEqualTo(CommentStatus.DELETED);
+        then(permissionService).should(times(1)).assertCanUserDeleteComment(user, comment);
+        then(commentHistoryRepository).should(times(1)).save(any(CommentHistory.class));
     }
 
     @Test
@@ -249,9 +276,9 @@ class CommentServiceTest {
         Comment comment = Comment.create(post, owner, "테스트 댓글");
 
         given(post.getPostId()).willReturn(postId);
-        given(owner.getId()).willReturn(1L);
-        given(other.getId()).willReturn(2L);
         given(commentRepository.findById(commentId)).willReturn(Optional.of(comment));
+        willThrow(new CustomException(ErrorCode.ACCESS_DENIED))
+                .given(permissionService).assertCanUserDeleteComment(other, comment);
 
         // when & then
         assertThatThrownBy(() ->

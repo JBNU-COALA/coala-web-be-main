@@ -1,6 +1,7 @@
 package com.example.coalawebbackend.api.comment.dto;
 
 import com.example.coalawebbackend.domain.comment.entity.Comment;
+import com.example.coalawebbackend.domain.comment.entity.CommentStatus;
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.AccessLevel;
@@ -18,6 +19,7 @@ public class CommentResponse {
     private Long userId;
     private String authorName;
     private String content;
+    private CommentStatus status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     @Builder.Default
@@ -38,10 +40,15 @@ public class CommentResponse {
                 .parentCommentId(comment.getParent() == null ? null : comment.getParent().getId())
                 .userId(comment.getUser().getId())
                 .authorName(displayName)
-                .content(comment.getContent())
+                .content(displayContent(comment))
+                .status(comment.getStatus())
                 .createdAt(comment.getCreatedAt())
                 .updatedAt(comment.getUpdatedAt())
                 .replies(replies)
                 .build();
+    }
+
+    private static String displayContent(Comment comment) {
+        return comment.isVisible() ? comment.getContent() : "삭제된 댓글입니다.";
     }
 }

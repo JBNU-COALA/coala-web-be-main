@@ -8,10 +8,17 @@ import com.example.coalawebbackend.api.post.dto.PostRequest;
 import com.example.coalawebbackend.api.post.dto.UpdatePostResponse;
 import com.example.coalawebbackend.common.enums.ErrorCode;
 import com.example.coalawebbackend.common.exception.CustomException;
+import com.example.coalawebbackend.domain.attachment.service.AttachmentService;
 import com.example.coalawebbackend.domain.board.entity.Board;
 import com.example.coalawebbackend.domain.board.service.BoardService;
 import com.example.coalawebbackend.domain.comment.repository.CommentRepository;
+import com.example.coalawebbackend.domain.moderation.entity.ContentHistoryAction;
+import com.example.coalawebbackend.domain.moderation.entity.PostHistory;
+import com.example.coalawebbackend.domain.moderation.repository.PostHistoryRepository;
+import com.example.coalawebbackend.domain.moderation.service.ContentSafetyService;
+import com.example.coalawebbackend.domain.moderation.service.PermissionService;
 import com.example.coalawebbackend.domain.post.entity.Post;
+import com.example.coalawebbackend.domain.post.entity.PostStatus;
 import com.example.coalawebbackend.domain.post.repository.PostRepository;
 import com.example.coalawebbackend.domain.postlike.repository.PostLikeRepository;
 import com.example.coalawebbackend.domain.user.entity.User;
@@ -28,17 +35,32 @@ public class PostService {
     private final BoardService boardService;
     private final CommentRepository commentRepository;
     private final PostLikeRepository postLikeRepository;
+    private final PostHistoryRepository postHistoryRepository;
+    private final PermissionService permissionService;
+    private final ContentSafetyService contentSafetyService;
+    private final AttachmentService attachmentService;
 
     @Transactional
     public CreatePostResponse createPost(User user, Long boardId, PostRequest request) {
         Board board = boardService.getBoardById(boardId);
-        Post post = Post.create(request.getTitle(),request.getContent(), board, user);
-        return CreatePostResponse.from(postRepository.save(post));
+        permissionService.assertCanCreatePost(user, board);
+        contentSafetyService.validateMarkdown(request.getTitle());
+        contentSafetyService.validateMarkdown(request.getContent());
+        Post post = Post.create(request.getTitle(), request.getContent(), board, user);
+        Post savedPost = postRepository.save(post);
+        Long thumbnailAttachmentId = attachmentService.syncPostAttachments(
+                user,
+                savedPost,
+                request.getAttachmentIds(),
+                request.getThumbnailAttachmentId());
+        savedPost.updateThumbnailAttachmentId(thumbnailAttachmentId);
+        saveHistory(savedPost, user, ContentHistoryAction.CREATED, null);
+        return CreatePostResponse.from(savedPost);
     }
 
     @Transactional(readOnly = true)
     public List<PostListResponse> getPosts(Long boardId) {
-        return postRepository.findByBoardBoardId(boardId)
+        return postRepository.findByBoardBoardIdAndStatusOrderByCreatedAtDesc(boardId, PostStatus.ACTIVE)
                 .stream()
                 .map(this::toPostListResponse)
                 .toList();
@@ -46,7 +68,7 @@ public class PostService {
 
     @Transactional
     public PostDetailResponse getPostDetail(Long boardId, Long postId) {
-        Post post = postRepository.findById(postId)
+        Post post = postRepository.findByPostIdAndStatus(postId, PostStatus.ACTIVE)
                 .orElseThrow(() -> new CustomException(ErrorCode.POST_NOT_FOUND));
         if (!post.getBoard().getBoardId().equals(boardId)) {
             throw new CustomException(ErrorCode.POST_NOT_FOUND);
@@ -60,16 +82,29 @@ public class PostService {
     @Transactional
     public UpdatePostResponse updatePost(Long postId, PostRequest request, User user) {
         Post post = getPostById(postId);
-        validatePostOwner(post, user);
+        permissionService.assertCanUpdatePost(user, post);
+        contentSafetyService.validateMarkdown(request.getTitle());
+        contentSafetyService.validateMarkdown(request.getContent());
+        saveHistory(post, user, ContentHistoryAction.UPDATED, "before update");
         post.update(request.getTitle(), request.getContent());
+        if (request.getAttachmentIds() != null || request.getThumbnailAttachmentId() != null) {
+            Long thumbnailAttachmentId = attachmentService.syncPostAttachments(
+                    user,
+                    post,
+                    request.getAttachmentIds(),
+                    request.getThumbnailAttachmentId());
+            post.updateThumbnailAttachmentId(thumbnailAttachmentId);
+        }
         return UpdatePostResponse.from(post);
     }
 
     @Transactional
     public void deletePost(Long postId, User user) {
         Post post = getPostById(postId);
-        validatePostOwner(post, user);
-        postRepository.delete(post);
+        permissionService.assertCanUserDeletePost(user, post);
+        saveHistory(post, user, ContentHistoryAction.USER_DELETED, "user deleted");
+        post.softDelete(user, "사용자 삭제", false);
+        attachmentService.markPostAttachmentsDeleted(post, user);
     }
 
 
@@ -78,10 +113,9 @@ public class PostService {
                 .orElseThrow(() -> new CustomException(ErrorCode.POST_NOT_FOUND));
     }
 
-    private void validatePostOwner(Post post, User user) {
-        if (!post.getUser().getId().equals(user.getId())) {
-            throw new CustomException(ErrorCode.ACCESS_DENIED);
-        }
+    public Post getVisiblePostById(Long postId) {
+        return postRepository.findByPostIdAndStatus(postId, PostStatus.ACTIVE)
+                .orElseThrow(() -> new CustomException(ErrorCode.POST_NOT_FOUND));
     }
 
     private PostListResponse toPostListResponse(Post post) {
@@ -96,5 +130,17 @@ public class PostService {
                 post,
                 commentRepository.countByPost_PostId(post.getPostId()),
                 postLikeRepository.countByPost(post));
+    }
+
+    private void saveHistory(Post post, User actor, ContentHistoryAction action, String reason) {
+        postHistoryRepository.save(PostHistory.builder()
+                .post(post)
+                .actor(actor)
+                .action(action)
+                .title(post.getTitle())
+                .content(post.getContent())
+                .status(post.getStatus())
+                .reason(reason)
+                .build());
     }
 }

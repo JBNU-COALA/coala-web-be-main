@@ -31,7 +31,8 @@ import lombok.NoArgsConstructor;
         },
         indexes = {
                 @Index(name = "idx_users_academic_status", columnList = "academic_status"),
-                @Index(name = "idx_users_grade", columnList = "grade")
+                @Index(name = "idx_users_grade", columnList = "grade"),
+                @Index(name = "idx_users_role", columnList = "role")
         }
 )
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -102,8 +103,24 @@ public class User extends BaseEntity {
     @Column(name = "verified", nullable = false)
     private boolean verified = false;
 
+    @Builder.Default
+    @Enumerated(EnumType.STRING)
+    @Column(name = "role", length = 30)
+    private UserRole role = UserRole.USER;
+
     public void markVerified() {
         this.verified = true;
+        if (this.role == null) {
+            this.role = UserRole.USER;
+        }
+    }
+
+    public UserRole getRole() {
+        return role == null ? UserRole.USER : role;
+    }
+
+    public void grantRole(UserRole role) {
+        this.role = role == null ? UserRole.USER : role;
     }
 
     public void syncSeedAccount(
@@ -128,5 +145,8 @@ public class User extends BaseEntity {
         this.githubId = githubId;
         this.academicStatus = academicStatus;
         this.verified = true;
+        if (this.role == null) {
+            this.role = UserRole.USER;
+        }
     }
 }

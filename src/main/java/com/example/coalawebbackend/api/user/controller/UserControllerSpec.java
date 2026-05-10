@@ -25,5 +25,7 @@ public interface UserControllerSpec {
             required = true,
             content = @Content(schema = @Schema(implementation = UserCreateRequest.class))
     )
-    ResponseEntity<EmailVerificationResponse> createUser(UserCreateRequest request);
+    ResponseEntity<EmailVerificationResponse> createUser(
+            UserCreateRequest request,
+            jakarta.servlet.http.HttpServletRequest httpRequest);
 }

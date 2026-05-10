@@ -23,23 +23,24 @@ public class CommentFacade {
     private final UserService userService;
 
     public CreateCommentResponse createComment(Long postId, CreateCommentRequest request, String userId) {
-        Post post = postService.getPostById(postId);
+        Post post = postService.getVisiblePostById(postId);
         User user = userService.findById(userId);
         return commentService.createComment(post, user, request);
     }
 
     public List<CommentResponse> getComments(Long postId) {
+        postService.getVisiblePostById(postId);
         return commentService.getComments(postId);
     }
 
     public List<CommentResponse> getReplies(Long postId, Long commentId) {
-        postService.getPostById(postId);
+        postService.getVisiblePostById(postId);
         commentService.getCommentInPost(postId, commentId);
         return commentService.getReplies(postId, commentId);
     }
 
     public CreateCommentResponse createReply(Long postId, Long commentId, CreateCommentRequest request, String userId) {
-        Post post = postService.getPostById(postId);
+        Post post = postService.getVisiblePostById(postId);
         User user = userService.findById(userId);
         return commentService.createComment(post, user, new CreateCommentRequest(request.getContent(), commentId));
     }

@@ -88,4 +88,18 @@ public class MemberService extends BaseEntity {
     @Column(name = "stack_name", nullable = false, length = 80)
     @Builder.Default
     private List<String> stack = new ArrayList<>();
+
+    public void updateCatalog(String title, String category, String summary, String url, List<String> tags) {
+        this.title = title;
+        this.category = category;
+        this.summary = summary;
+        this.url = url;
+        this.tags = new ArrayList<>(tags == null ? List.of() : tags);
+    }
+
+    public void retire() {
+        this.status = "중지";
+        this.visibility = "Private";
+        this.period = "운영 중지";
+    }
 }

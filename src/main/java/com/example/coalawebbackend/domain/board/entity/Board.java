@@ -76,6 +76,10 @@ public class Board extends BaseEntity {
         }
     }
 
+    public void deactivate() {
+        this.isActive = false;
+    }
+
     public static Board createFromBoard(String name, String description, String type, User user) {
         BoardType resolvedType = (type == null || type.isBlank())
                 ? BoardType.NORMAL

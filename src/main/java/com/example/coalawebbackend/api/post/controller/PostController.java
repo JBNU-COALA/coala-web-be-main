@@ -6,7 +6,10 @@ import com.example.coalawebbackend.api.post.dto.PostListResponse;
 import com.example.coalawebbackend.api.post.dto.PostRequest;
 import com.example.coalawebbackend.api.post.dto.UpdatePostResponse;
 import com.example.coalawebbackend.api.post.facade.PostFacade;
+import com.example.coalawebbackend.common.ratelimit.RateLimitService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import java.time.Duration;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -26,13 +29,16 @@ import org.springframework.web.bind.annotation.RestController;
 public class PostController implements PostControllerSpec {
 
     private final PostFacade postFacade;
+    private final RateLimitService rateLimitService;
 
     @PostMapping("/boards/{boardId}/posts")
     public ResponseEntity<CreatePostResponse> createPost(
             @PathVariable Long boardId,
             @Valid @RequestBody PostRequest request,
-            @AuthenticationPrincipal String userId
+            @AuthenticationPrincipal String userId,
+            HttpServletRequest httpRequest
     ) {
+        rateLimitService.check(httpRequest, "posts:create:" + userId, 1, Duration.ofMinutes(1));
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(postFacade.createPost(userId, boardId, request));

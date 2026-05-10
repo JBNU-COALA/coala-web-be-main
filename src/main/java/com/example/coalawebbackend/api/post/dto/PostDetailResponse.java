@@ -1,6 +1,7 @@
 package com.example.coalawebbackend.api.post.dto;
 
 import com.example.coalawebbackend.domain.post.entity.Post;
+import com.example.coalawebbackend.domain.post.entity.PostStatus;
 import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -20,9 +21,13 @@ public class PostDetailResponse {
 
     private String title;
     private String content;
+    private PostStatus status;
+    private boolean locked;
+    private boolean notice;
     private int viewCount;
     private long commentCount;
     private long likeCount;
+    private Long thumbnailAttachmentId;
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -45,9 +50,13 @@ public class PostDetailResponse {
                 .authorName(displayName)
                 .title(post.getTitle())
                 .content(post.getContent())
+                .status(post.getStatus())
+                .locked(post.isLocked())
+                .notice(post.isNotice())
                 .viewCount(post.getViewCount())
                 .commentCount(commentCount)
                 .likeCount(likeCount)
+                .thumbnailAttachmentId(post.getThumbnailAttachmentId())
                 .createdAt(post.getCreatedAt())
                 .updatedAt(post.getUpdatedAt())
                 .build();

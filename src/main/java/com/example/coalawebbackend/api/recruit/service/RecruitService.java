@@ -9,6 +9,7 @@ import com.example.coalawebbackend.api.recruit.dto.RecruitPostResponse;
 import com.example.coalawebbackend.api.recruit.dto.RecruitRoleResponse;
 import com.example.coalawebbackend.common.enums.ErrorCode;
 import com.example.coalawebbackend.common.exception.CustomException;
+import com.example.coalawebbackend.domain.moderation.service.PermissionService;
 import com.example.coalawebbackend.domain.recruit.entity.RecruitApplication;
 import com.example.coalawebbackend.domain.recruit.entity.RecruitComment;
 import com.example.coalawebbackend.domain.recruit.entity.RecruitPost;
@@ -39,6 +40,7 @@ public class RecruitService {
     private final RecruitCommentRepository recruitCommentRepository;
     private final RecruitApplicationRepository recruitApplicationRepository;
     private final UserService userService;
+    private final PermissionService permissionService;
 
     public List<RecruitPostResponse> getRecruits(String category, String status, String query, String sort) {
         List<RecruitPost> recruits = StringUtils.hasText(category) && !"all".equalsIgnoreCase(category)
@@ -151,7 +153,8 @@ public class RecruitService {
                 .toList();
     }
 
-    public List<RecruitApplicationResponse> getRecruitApplications(String recruitId) {
+    public List<RecruitApplicationResponse> getRecruitApplications(User actor, String recruitId) {
+        permissionService.assertModerator(actor);
         return recruitApplicationRepository.findByRecruitPost_IdOrderBySubmittedAtDesc(recruitId)
                 .stream()
                 .map(this::toApplicationResponse)

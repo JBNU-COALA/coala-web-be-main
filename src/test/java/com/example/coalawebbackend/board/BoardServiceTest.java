@@ -7,6 +7,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.mock;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.BDDMockito.times;
+import static org.mockito.BDDMockito.willThrow;
 
 import com.example.coalawebbackend.api.board.dto.BoardResponse;
 import com.example.coalawebbackend.api.board.dto.CreateBoardRequest;
@@ -18,6 +19,7 @@ import com.example.coalawebbackend.common.exception.CustomException;
 import com.example.coalawebbackend.domain.board.entity.Board;
 import com.example.coalawebbackend.domain.board.repository.BoardRepository;
 import com.example.coalawebbackend.domain.board.service.BoardService;
+import com.example.coalawebbackend.domain.moderation.service.PermissionService;
 import com.example.coalawebbackend.domain.user.entity.User;
 import java.util.List;
 import java.util.Optional;
@@ -37,6 +39,9 @@ class BoardServiceTest {
     @Mock
     private BoardRepository boardRepository;
 
+    @Mock
+    private PermissionService permissionService;
+
     @Test
     @DisplayName("게시글 생성 성공")
     void createBoard_success() {
@@ -52,6 +57,7 @@ class BoardServiceTest {
 
         // then
         assertThat(response).isNotNull();
+        then(permissionService).should(times(1)).assertModerator(user);
         then(boardRepository).should(times(1)).save(any(Board.class));
     }
 
@@ -75,13 +81,9 @@ class BoardServiceTest {
         // given
         Long boardId = 1L;
         User user = mock(User.class);
-        User boardOwner = mock(User.class);
         Board board = mock(Board.class);
         UpdateBoardRequest request = mock(UpdateBoardRequest.class);
 
-        given(user.getId()).willReturn(1L);
-        given(boardOwner.getId()).willReturn(1L);  // 같은 ID
-        given(board.getUser()).willReturn(boardOwner);
         given(boardRepository.findById(boardId)).willReturn(Optional.of(board));
 
         // when
@@ -89,6 +91,7 @@ class BoardServiceTest {
 
         // then
         assertThat(response).isNotNull();
+        then(permissionService).should(times(1)).assertModerator(user);
         then(board).should(times(1)).updateBoard(request.getBoardName(),request.getDescription(),
                 request.getIsActive());
     }
@@ -115,21 +118,17 @@ class BoardServiceTest {
     void updateBoard_fail_accessDenied() {
         // given
         Long boardId = 1L;
-        User owner = mock(User.class);
         User other = mock(User.class);
-        Board board = mock(Board.class);
         UpdateBoardRequest request = mock(UpdateBoardRequest.class);
 
-        given(owner.getId()).willReturn(1L);
-        given(other.getId()).willReturn(2L);
-        given(board.getUser()).willReturn(owner);
-        given(boardRepository.findById(boardId)).willReturn(Optional.of(board));
+        willThrow(new CustomException(ErrorCode.ACCESS_DENIED))
+                .given(permissionService).assertModerator(other);
 
         // when & then
         assertThatThrownBy(() -> boardService.updateBoard(boardId, request, other))
                 .isInstanceOf(CustomException.class)
                 .satisfies(e -> assertThat(((CustomException) e).getErrorCode())
-                        .isEqualTo(ErrorCode.BOARD_ACCESS_DENIED));
+                        .isEqualTo(ErrorCode.ACCESS_DENIED));
     }
 
     @Test
@@ -138,19 +137,16 @@ class BoardServiceTest {
         // given
         Long boardId = 1L;
         User user = mock(User.class);
-        User boardOwner = mock(User.class);
         Board board = mock(Board.class);
 
-        given(user.getId()).willReturn(1L);
-        given(boardOwner.getId()).willReturn(1L);  // 같은 ID
-        given(board.getUser()).willReturn(boardOwner);
         given(boardRepository.findById(boardId)).willReturn(Optional.of(board));
 
         // when
         boardService.deleteBoard(boardId, user);
 
         // then
-        then(boardRepository).should(times(1)).delete(board);
+        then(permissionService).should(times(1)).assertModerator(user);
+        then(board).should(times(1)).deactivate();
     }
 
     @Test
@@ -158,19 +154,15 @@ class BoardServiceTest {
     void deleteBoard_fail_accessDenied() {
         // given
         Long boardId = 1L;
-        User owner = mock(User.class);
         User other = mock(User.class);
-        Board board = mock(Board.class);
 
-        given(owner.getId()).willReturn(1L);
-        given(other.getId()).willReturn(2L);
-        given(board.getUser()).willReturn(owner);
-        given(boardRepository.findById(boardId)).willReturn(Optional.of(board));
+        willThrow(new CustomException(ErrorCode.ACCESS_DENIED))
+                .given(permissionService).assertModerator(other);
 
         // when & then
         assertThatThrownBy(() -> boardService.deleteBoard(boardId, other))
                 .isInstanceOf(CustomException.class)
                 .satisfies(e -> assertThat(((CustomException) e).getErrorCode())
-                        .isEqualTo(ErrorCode.BOARD_ACCESS_DENIED));
+                        .isEqualTo(ErrorCode.ACCESS_DENIED));
     }
 }

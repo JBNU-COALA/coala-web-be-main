@@ -30,7 +30,9 @@ public interface AuthControllerSpec {
     @RequestBody(
             required = true,
             content = @Content(schema = @Schema(implementation = LoginRequest.class)))
-    ResponseEntity<TokenResponse> login(LoginRequest request);
+    ResponseEntity<TokenResponse> login(
+            LoginRequest request,
+            jakarta.servlet.http.HttpServletRequest httpRequest);
 
     @Operation(summary = "토큰 갱신", description = "리프레시 토큰으로 새 액세스/리프레시 토큰을 발급합니다.")
     @ApiResponses({
@@ -62,7 +64,8 @@ public interface AuthControllerSpec {
         @ApiResponse(responseCode = "404", description = "사용자 없음", content = @Content)
     })
     ResponseEntity<EmailVerificationResponse> resendEmailVerification(
-            EmailVerificationResendRequest request);
+            EmailVerificationResendRequest request,
+            jakarta.servlet.http.HttpServletRequest httpRequest);
 
     @Operation(summary = "이메일 인증 확인", description = "인증번호를 확인하고 사용자 이메일 인증 상태를 완료로 변경합니다.")
     @ApiResponses({

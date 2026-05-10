@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -14,6 +15,8 @@ import com.example.coalawebbackend.api.auth.service.EmailVerificationCodeStore;
 import com.example.coalawebbackend.api.auth.service.EmailVerificationMailService;
 import com.example.coalawebbackend.common.jwt.LogoutTokenStore;
 import com.example.coalawebbackend.common.jwt.RefreshTokenStore;
+import com.example.coalawebbackend.domain.user.entity.UserRole;
+import com.example.coalawebbackend.domain.user.repository.UserRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.UUID;
@@ -23,6 +26,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -43,12 +47,16 @@ import org.springframework.test.web.servlet.MvcResult;
         "jwt.secret=test-jwt-secret-for-api-smoke",
         "github.api.base-url=http://127.0.0.1:1",
         "app.seed.dev-account.enabled=true",
-        "app.security.swagger-enabled=true"
+        "app.security.swagger-enabled=true",
+        "app.storage.root-path=build/test-uploads"
 })
 class ApiSmokeTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @Autowired
+    private UserRepository userRepository;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -133,6 +141,11 @@ class ApiSmokeTest {
 
         JsonNode loginJson = readJson(loginResult);
         String refreshToken = loginJson.get("refreshToken").asText();
+        long smokeUserId = loginJson.get("user").get("id").asLong();
+        userRepository.findById(smokeUserId).ifPresent(user -> {
+            user.grantRole(UserRole.SUPER_ADMIN);
+            userRepository.save(user);
+        });
 
         MvcResult refreshResult = mockMvc.perform(post("/api/auth/refresh")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -150,14 +163,29 @@ class ApiSmokeTest {
         mockMvc.perform(get("/api/users")
                         .header("Authorization", bearer(accessToken)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(4))
-                .andExpect(jsonPath("$[0].name").value("김민지"));
+                .andExpect(jsonPath("$.length()").value(3));
 
-        mockMvc.perform(get("/api/users/{userId}", 4L)
+        mockMvc.perform(get("/api/users/{userId}", smokeUserId)
                         .header("Authorization", bearer(accessToken)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.name").value("이도윤"))
+                .andExpect(jsonPath("$.name").value("Api Smoke"))
                 .andExpect(jsonPath("$.isMe").value(true));
+
+        mockMvc.perform(get("/api/admin/users")
+                        .header("Authorization", bearer(accessToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(3));
+
+        mockMvc.perform(patch("/api/admin/users/{userId}/role", smokeUserId)
+                        .header("Authorization", bearer(accessToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "role": "SUPER_ADMIN"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.role").value("SUPER_ADMIN"));
 
         mockMvc.perform(get("/api/services")
                         .header("Authorization", bearer(accessToken)))
@@ -185,6 +213,22 @@ class ApiSmokeTest {
         mockMvc.perform(get("/api/services/{serviceId}", createdServiceId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(createdServiceId));
+
+        mockMvc.perform(patch("/api/services/{serviceId}", createdServiceId)
+                        .header("Authorization", bearer(accessToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "Smoke service updated",
+                                  "category": "tool",
+                                  "summary": "Smoke service updated",
+                                  "url": "https://example.com/updated",
+                                  "tags": ["smoke", "updated"]
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.title").value("Smoke service updated"))
+                .andExpect(jsonPath("$.url").value("https://example.com/updated"));
 
         mockMvc.perform(get("/api/services/instances/applications")
                         .header("Authorization", bearer(accessToken)))
@@ -239,7 +283,8 @@ class ApiSmokeTest {
                 .andReturn();
         String inquiryId = readJson(inquiryResult).get("id").asText();
 
-        mockMvc.perform(get("/api/services/instances/inquiries"))
+        mockMvc.perform(get("/api/services/instances/inquiries")
+                        .header("Authorization", bearer(accessToken)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(inquiryId));
 
@@ -356,7 +401,8 @@ class ApiSmokeTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1));
 
-        mockMvc.perform(get("/api/recruits/{recruitId}/applications", recruitId))
+        mockMvc.perform(get("/api/recruits/{recruitId}/applications", recruitId)
+                        .header("Authorization", bearer(accessToken)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1));
 
@@ -420,19 +466,41 @@ class ApiSmokeTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("UPDATED"));
 
+        MockMultipartFile smokeImage = new MockMultipartFile(
+                "file",
+                "smoke.png",
+                "image/png",
+                new byte[] {(byte) 0x89, 'P', 'N', 'G', 0x0D, 0x0A}
+        );
+        MvcResult attachmentResult = mockMvc.perform(multipart("/api/attachments/images")
+                        .file(smokeImage)
+                        .header("Authorization", bearer(accessToken)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.attachmentId").exists())
+                .andExpect(jsonPath("$.url").exists())
+                .andExpect(jsonPath("$.status").value("TEMP"))
+                .andReturn();
+        long attachmentId = readJson(attachmentResult).get("attachmentId").asLong();
+        String attachmentUrl = readJson(attachmentResult).get("url").asText();
+
         MvcResult postResult = mockMvc.perform(post("/api/boards/{boardId}/posts", boardId)
                         .header("Authorization", bearer(accessToken))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
                                   "title": "Smoke post",
-                                  "content": "Smoke post content"
+                                  "content": "Smoke post content\\n\\n![smoke](%s)",
+                                  "attachmentIds": [%d],
+                                  "thumbnailAttachmentId": %d
                                 }
-                                """))
+                                """.formatted(attachmentUrl, attachmentId, attachmentId)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.postId").exists())
                 .andReturn();
         long postId = readJson(postResult).get("postId").asLong();
+
+        mockMvc.perform(get("/api/attachments/{attachmentId}/download", attachmentId))
+                .andExpect(status().isOk());
 
         mockMvc.perform(get("/api/boards/{boardId}/posts", boardId))
                 .andExpect(status().isOk());
@@ -440,6 +508,12 @@ class ApiSmokeTest {
         mockMvc.perform(get("/api/boards/{boardId}/posts/{postId}", boardId, postId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.postId").value(postId));
+
+        mockMvc.perform(get("/api/admin/posts")
+                        .header("Authorization", bearer(accessToken))
+                        .param("status", "ACTIVE"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].postId").value(postId));
 
         mockMvc.perform(patch("/api/posts/{postId}", postId)
                         .header("Authorization", bearer(accessToken))
@@ -468,6 +542,7 @@ class ApiSmokeTest {
 
         MvcResult replyResult = mockMvc.perform(post("/api/posts/{postId}/comments/{commentId}/replies", postId, commentId)
                         .header("Authorization", bearer(accessToken))
+                        .header("X-Forwarded-For", "203.0.113.20")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -541,6 +616,31 @@ class ApiSmokeTest {
                         .header("Authorization", bearer(accessToken)))
                 .andExpect(status().isNoContent());
 
+        mockMvc.perform(post("/api/admin/moderation/posts/{postId}/lock", postId)
+                        .header("Authorization", bearer(accessToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "reason": "smoke lock"
+                                }
+                                """))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(post("/api/admin/moderation/posts/{postId}/unlock", postId)
+                        .header("Authorization", bearer(accessToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "reason": "smoke unlock"
+                                }
+                                """))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/admin/audit-logs")
+                        .header("Authorization", bearer(accessToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].action").exists());
+
         mockMvc.perform(delete("/api/posts/{postId}/comments/{commentId}", postId, commentId)
                         .header("Authorization", bearer(accessToken)))
                 .andExpect(status().isNoContent());
@@ -556,6 +656,14 @@ class ApiSmokeTest {
         mockMvc.perform(delete("/api/boards/{boardId}", boardId)
                         .header("Authorization", bearer(accessToken)))
                 .andExpect(status().isNoContent());
+
+        mockMvc.perform(delete("/api/services/{serviceId}", createdServiceId)
+                        .header("Authorization", bearer(accessToken)))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/services/{serviceId}", createdServiceId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("중지"));
 
         MvcResult openApiResult = mockMvc.perform(get("/v3/api-docs"))
                 .andExpect(status().isOk())

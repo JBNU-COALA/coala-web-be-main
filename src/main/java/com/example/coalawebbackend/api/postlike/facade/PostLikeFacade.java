@@ -18,7 +18,7 @@ public class PostLikeFacade {
     private final UserService userService;
 
     public PostLikeResponse toggleLike(Long postId, String userId) {
-        Post post = postService.getPostById(postId);
+        Post post = postService.getVisiblePostById(postId);
         User user = userService.findById(userId);
         return postLikeService.toggleLike(user, post);
     }

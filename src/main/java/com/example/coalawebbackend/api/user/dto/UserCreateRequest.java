@@ -86,7 +86,7 @@ public class UserCreateRequest {
     private String linkedinUrl;
 
     @NotNull
-    @Schema(example = "ENROLLED", description = "ENROLLED / ON_LEAVE / GRADUATED")
+    @Schema(example = "ENROLLED", description = "PROFESSOR / ASSISTANT / ENROLLED / ON_LEAVE / GRADUATED / GENERAL")
     private AcademicStatus academicStatus;
 
     public User toEntity() {

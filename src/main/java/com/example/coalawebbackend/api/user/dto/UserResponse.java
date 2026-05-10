@@ -3,6 +3,7 @@ package com.example.coalawebbackend.api.user.dto;
 import com.example.coalawebbackend.domain.user.entity.AcademicStatus;
 import com.example.coalawebbackend.domain.user.entity.Gender;
 import com.example.coalawebbackend.domain.user.entity.User;
+import com.example.coalawebbackend.domain.user.entity.UserRole;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -31,6 +32,7 @@ public class UserResponse {
     private String linkedinUrl;
     private AcademicStatus academicStatus;
     private boolean verified;
+    private UserRole role;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -49,6 +51,7 @@ public class UserResponse {
                 .linkedinUrl(user.getLinkedinUrl())
                 .academicStatus(user.getAcademicStatus())
                 .verified(user.isVerified())
+                .role(user.getRole())
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
                 .build();

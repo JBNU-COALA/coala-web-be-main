@@ -6,7 +6,10 @@ import com.example.coalawebbackend.api.comment.dto.CreateCommentResponse;
 import com.example.coalawebbackend.api.comment.dto.UpdateCommentRequest;
 import com.example.coalawebbackend.api.comment.dto.UpdateCommentResponse;
 import com.example.coalawebbackend.api.comment.facade.CommentFacade;
+import com.example.coalawebbackend.common.ratelimit.RateLimitService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import java.time.Duration;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -27,13 +30,16 @@ import org.springframework.web.bind.annotation.RestController;
 public class CommentController implements CommentControllerSpec{
 
     private final CommentFacade commentFacade;  // Service → Facade
+    private final RateLimitService rateLimitService;
 
     @PostMapping
     public ResponseEntity<CreateCommentResponse> createComment(
             @PathVariable Long postId,
             @Valid @RequestBody CreateCommentRequest request,
-            @AuthenticationPrincipal String userId
+            @AuthenticationPrincipal String userId,
+            HttpServletRequest httpRequest
     ) {
+        rateLimitService.check(httpRequest, "comments:create:" + userId, 1, Duration.ofSeconds(10));
         return ResponseEntity.ok(
                 commentFacade.createComment(postId, request, userId)
         );
@@ -44,8 +50,10 @@ public class CommentController implements CommentControllerSpec{
             @PathVariable Long postId,
             @PathVariable Long commentId,
             @Valid @RequestBody CreateCommentRequest request,
-            @AuthenticationPrincipal String userId
+            @AuthenticationPrincipal String userId,
+            HttpServletRequest httpRequest
     ) {
+        rateLimitService.check(httpRequest, "comments:create:" + userId, 1, Duration.ofSeconds(10));
         return ResponseEntity.ok(
                 commentFacade.createReply(postId, commentId, request, userId)
         );

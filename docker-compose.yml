@@ -5,6 +5,8 @@ services:
     container_name: coala-web-be-main
     ports:
       - "8080:8080"
+    volumes:
+      - /data/uploads:/data/uploads
     environment:
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
       DB_URL: ${DB_URL}
@@ -26,4 +28,5 @@ services:
       MAIL_SSL_TLS: ${MAIL_SSL_TLS}
       EMAIL_VERIFICATION_TTL_MINUTES: ${EMAIL_VERIFICATION_TTL_MINUTES:-10}
       APP_SEED_DEV_ACCOUNT_ENABLED: ${APP_SEED_DEV_ACCOUNT_ENABLED:-false}
+      APP_STORAGE_ROOT_PATH: ${APP_STORAGE_ROOT_PATH:-/data/uploads}
     restart: always

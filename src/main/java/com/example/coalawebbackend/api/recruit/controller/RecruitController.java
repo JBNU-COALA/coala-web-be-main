@@ -7,6 +7,7 @@ import com.example.coalawebbackend.api.recruit.dto.RecruitCommentResponse;
 import com.example.coalawebbackend.api.recruit.dto.RecruitPostRequest;
 import com.example.coalawebbackend.api.recruit.dto.RecruitPostResponse;
 import com.example.coalawebbackend.api.recruit.service.RecruitService;
+import com.example.coalawebbackend.domain.user.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -30,6 +31,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class RecruitController {
 
     private final RecruitService recruitService;
+    private final UserService userService;
 
     @GetMapping
     @Operation(summary = "모집 공고 목록 조회", description = "모집 공고 목록을 필터링해서 조회합니다.")
@@ -93,8 +95,11 @@ public class RecruitController {
 
     @GetMapping("/{recruitId}/applications")
     @Operation(summary = "모집 공고 지원서 조회", description = "특정 모집 공고의 지원서 목록을 조회합니다.")
-    public ResponseEntity<List<RecruitApplicationResponse>> getRecruitApplications(@PathVariable String recruitId) {
-        return ResponseEntity.ok(recruitService.getRecruitApplications(recruitId));
+    public ResponseEntity<List<RecruitApplicationResponse>> getRecruitApplications(
+            @PathVariable String recruitId,
+            @AuthenticationPrincipal String userId
+    ) {
+        return ResponseEntity.ok(recruitService.getRecruitApplications(userService.findById(userId), recruitId));
     }
 
     @PostMapping("/{recruitId}/bookmarks")

@@ -36,6 +36,11 @@ spring:
           ssl:
             enable: ${MAIL_SSL_TLS:false}
 
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 50MB
+
 jwt:
   secret: ${JWT_SECRET}
   access-token-expiration: 1800000
@@ -53,6 +58,19 @@ app:
     from: ${MAIL_FROM:${MAIL_USERNAME:no-reply@coala.local}}
   email-verification:
     ttl-minutes: ${EMAIL_VERIFICATION_TTL_MINUTES:10}
+  storage:
+    root-path: ${APP_STORAGE_ROOT_PATH:/data/uploads}
+    max-file-size: ${APP_STORAGE_MAX_FILE_SIZE:10485760}
+    allowed-image-types:
+      - image/jpeg
+      - image/png
+      - image/webp
+      - image/gif
+    allowed-attachment-types:
+      - application/pdf
+      - application/vnd.openxmlformats-officedocument.wordprocessingml.document
+      - application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+      - text/plain
 
 github:
   api:

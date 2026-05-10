@@ -52,19 +52,16 @@ public class SecurityConfig {
                                     "/api/users/*",
                                     "/api/services",
                                     "/api/services/*",
-                                    "/api/services/instances/applications",
-                                    "/api/services/instances/applications/*",
-                                    "/api/services/instances/inquiries",
                                     "/api/github/public-activity",
                                     "/api/info",
                                     "/api/info/*",
                                     "/api/recruits",
                                     "/api/recruits/*",
                                     "/api/recruits/*/comments",
-                                    "/api/recruits/*/applications",
                                     "/api/posts/*/comments",
                                     "/api/posts/*/comments/*/replies",
-                                    "/api/posts/*/resources"
+                                    "/api/posts/*/resources",
+                                    "/api/attachments/*/download"
                             ).permitAll()
                             .requestMatchers(
                                     "/api/auth/signup",

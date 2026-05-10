@@ -13,6 +13,8 @@ import com.example.coalawebbackend.domain.instance.entity.InstanceSpec;
 import com.example.coalawebbackend.domain.instance.entity.ServiceInquiry;
 import com.example.coalawebbackend.domain.instance.repository.InstanceApplicationRepository;
 import com.example.coalawebbackend.domain.instance.repository.ServiceInquiryRepository;
+import com.example.coalawebbackend.domain.moderation.service.PermissionService;
+import com.example.coalawebbackend.domain.user.entity.User;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -31,8 +33,10 @@ public class InstanceApplicationService {
 
     private final InstanceApplicationRepository instanceApplicationRepository;
     private final ServiceInquiryRepository serviceInquiryRepository;
+    private final PermissionService permissionService;
 
-    public List<InstanceApplicationResponse> getApplications() {
+    public List<InstanceApplicationResponse> getApplications(User actor) {
+        permissionService.assertModerator(actor);
         return instanceApplicationRepository.findAllByOrderByRequestedAtDesc()
                 .stream()
                 .map(this::toApplicationResponse)
@@ -58,17 +62,24 @@ public class InstanceApplicationService {
     }
 
     @Transactional
-    public InstanceApplicationResponse updateApplication(String applicationId, InstanceApplicationUpdateRequest request) {
+    public InstanceApplicationResponse updateApplication(
+            User actor,
+            String applicationId,
+            InstanceApplicationUpdateRequest request
+    ) {
+        permissionService.assertModerator(actor);
         InstanceApplication application = getApplicationEntity(applicationId);
         application.update(request.instanceType(), request.duration(), request.purpose(), request.status(), request.adminNote());
         return toApplicationResponse(application);
     }
 
-    public InstanceApplicationResponse getApplication(String applicationId) {
+    public InstanceApplicationResponse getApplication(User actor, String applicationId) {
+        permissionService.assertModerator(actor);
         return toApplicationResponse(getApplicationEntity(applicationId));
     }
 
-    public List<ServiceInquiryResponse> getInquiries() {
+    public List<ServiceInquiryResponse> getInquiries(User actor) {
+        permissionService.assertModerator(actor);
         return serviceInquiryRepository.findAllByOrderByCreatedDateDesc()
                 .stream()
                 .map(this::toInquiryResponse)

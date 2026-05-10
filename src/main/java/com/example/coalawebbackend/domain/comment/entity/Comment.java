@@ -6,6 +6,8 @@ import com.example.coalawebbackend.domain.user.entity.User;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -14,6 +16,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.AccessLevel;
@@ -49,6 +52,20 @@ public class Comment  extends BaseEntity {
     @OneToMany(mappedBy = "parent", cascade = CascadeType.REMOVE, orphanRemoval = true)
     private List<Comment> replies = new ArrayList<>();
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", length = 30)
+    private CommentStatus status = CommentStatus.ACTIVE;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "deleted_by")
+    private User deletedBy;
+
+    @Column(name = "delete_reason", length = 500)
+    private String deleteReason;
+
     public static Comment create(Post post, User user, String content) {
         Comment comment = new Comment();
         comment.post = post;
@@ -65,5 +82,35 @@ public class Comment  extends BaseEntity {
 
     public void update(String content) {
         this.content = content;
+    }
+
+    public boolean isVisible() {
+        return getStatus() == CommentStatus.ACTIVE;
+    }
+
+    public boolean isMutable() {
+        return getStatus() == CommentStatus.ACTIVE;
+    }
+
+    public CommentStatus getStatus() {
+        return status == null ? CommentStatus.ACTIVE : status;
+    }
+
+    public void softDelete(User actor, String reason, boolean adminDelete) {
+        this.status = adminDelete ? CommentStatus.ADMIN_DELETED : CommentStatus.DELETED;
+        this.deletedAt = LocalDateTime.now();
+        this.deletedBy = actor;
+        this.deleteReason = reason;
+    }
+
+    public void hide() {
+        this.status = CommentStatus.HIDDEN;
+    }
+
+    public void restore() {
+        this.status = CommentStatus.ACTIVE;
+        this.deletedAt = null;
+        this.deletedBy = null;
+        this.deleteReason = null;
     }
 }

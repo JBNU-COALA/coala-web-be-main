@@ -7,6 +7,8 @@ import com.example.coalawebbackend.common.exception.CustomException;
 import com.example.coalawebbackend.domain.info.entity.InfoArticle;
 import com.example.coalawebbackend.domain.info.entity.InfoCategory;
 import com.example.coalawebbackend.domain.info.repository.InfoArticleRepository;
+import com.example.coalawebbackend.domain.moderation.service.PermissionService;
+import com.example.coalawebbackend.domain.user.entity.User;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -23,6 +25,7 @@ public class InfoArticleService {
     private static final DateTimeFormatter DISPLAY_DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy.MM.dd");
 
     private final InfoArticleRepository infoArticleRepository;
+    private final PermissionService permissionService;
 
     public List<InfoArticleResponse> getArticles(String filter, String query) {
         InfoCategory category = InfoCategory.from(filter);
@@ -45,7 +48,8 @@ public class InfoArticleService {
     }
 
     @Transactional
-    public InfoArticleResponse createArticle(InfoArticleRequest request) {
+    public InfoArticleResponse createArticle(User actor, InfoArticleRequest request) {
+        permissionService.assertModerator(actor);
         InfoArticle article = InfoArticle.builder()
                 .category(InfoCategory.from(request.filter()))
                 .tag(request.tag())
@@ -60,7 +64,8 @@ public class InfoArticleService {
     }
 
     @Transactional
-    public InfoArticleResponse updateArticle(Long articleId, InfoArticleRequest request) {
+    public InfoArticleResponse updateArticle(User actor, Long articleId, InfoArticleRequest request) {
+        permissionService.assertModerator(actor);
         InfoArticle article = getArticleEntity(articleId);
         article.update(
                 InfoCategory.from(request.filter()),
@@ -75,7 +80,8 @@ public class InfoArticleService {
     }
 
     @Transactional
-    public void deleteArticle(Long articleId) {
+    public void deleteArticle(User actor, Long articleId) {
+        permissionService.assertModerator(actor);
         infoArticleRepository.delete(getArticleEntity(articleId));
     }
 

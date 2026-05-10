@@ -9,6 +9,7 @@ import com.example.coalawebbackend.common.enums.ErrorCode;
 import com.example.coalawebbackend.common.exception.CustomException;
 import com.example.coalawebbackend.domain.board.entity.Board;
 import com.example.coalawebbackend.domain.board.repository.BoardRepository;
+import com.example.coalawebbackend.domain.moderation.service.PermissionService;
 import com.example.coalawebbackend.domain.user.entity.User;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -21,9 +22,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class BoardService {
 
     private final BoardRepository boardRepository;
+    private final PermissionService permissionService;
 
     @Transactional
     public CreateBoardResponse createBoard(CreateBoardRequest request, User user) {
+        permissionService.assertModerator(user);
         Board board = Board.createFromBoard(request.getBoardName(), request.getDescription(), request.getBoardType(), user);
         Board savedBoard = boardRepository.save(board);
         return CreateBoardResponse.from(savedBoard);
@@ -39,11 +42,9 @@ public class BoardService {
 
     @Transactional
     public UpdateBoardResponse updateBoard(Long boardId, UpdateBoardRequest request, User user) {
+        permissionService.assertModerator(user);
         Board board = boardRepository.findById(boardId)
                 .orElseThrow(() -> new CustomException(ErrorCode.BOARD_NOT_FOUND));
-        if (!board.getUser().getId().equals(user.getId())) {
-            throw new CustomException(ErrorCode.BOARD_ACCESS_DENIED);
-        }
 
         board.updateBoard(request.getBoardName(), request.getDescription(), request.getIsActive());
         return UpdateBoardResponse.of(boardId);
@@ -51,13 +52,11 @@ public class BoardService {
 
     @Transactional
     public void deleteBoard(Long boardId, User user) {
+        permissionService.assertModerator(user);
         Board board = boardRepository.findById(boardId)
                 .orElseThrow(() -> new CustomException(ErrorCode.BOARD_NOT_FOUND));
-        if (!board.getUser().getId().equals(user.getId())) {
-            throw new CustomException(ErrorCode.BOARD_ACCESS_DENIED);
-        }
 
-        boardRepository.delete(board);
+        board.deactivate();
     }
 
     @Transactional(readOnly = true)

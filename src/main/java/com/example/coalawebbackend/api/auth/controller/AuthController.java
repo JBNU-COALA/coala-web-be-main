@@ -8,8 +8,10 @@ import com.example.coalawebbackend.api.auth.dto.TokenRefreshRequest;
 import com.example.coalawebbackend.api.auth.dto.TokenResponse;
 import com.example.coalawebbackend.api.auth.facade.AuthFacade;
 import com.example.coalawebbackend.api.auth.service.EmailVerificationService;
+import com.example.coalawebbackend.common.ratelimit.RateLimitService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import java.time.Duration;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
@@ -25,10 +27,15 @@ public class AuthController implements AuthControllerSpec {
 
     private final AuthFacade authFacade;
     private final EmailVerificationService emailVerificationService;
+    private final RateLimitService rateLimitService;
 
     @PostMapping("/login")
     @Override
-    public ResponseEntity<TokenResponse> login(@Valid @RequestBody LoginRequest request) {
+    public ResponseEntity<TokenResponse> login(
+            @Valid @RequestBody LoginRequest request,
+            HttpServletRequest httpRequest
+    ) {
+        rateLimitService.check(httpRequest, "auth:login", 5, Duration.ofMinutes(1));
         TokenResponse response = authFacade.login(request);
         return ResponseEntity.ok(response);
     }
@@ -53,7 +60,9 @@ public class AuthController implements AuthControllerSpec {
     @PostMapping("/email-verification/resend")
     @Override
     public ResponseEntity<EmailVerificationResponse> resendEmailVerification(
-            @Valid @RequestBody EmailVerificationResendRequest request) {
+            @Valid @RequestBody EmailVerificationResendRequest request,
+            HttpServletRequest httpRequest) {
+        rateLimitService.check(httpRequest, "auth:email-resend", 3, Duration.ofMinutes(5));
         return ResponseEntity.ok(emailVerificationService.resend(request.email()));
     }
 

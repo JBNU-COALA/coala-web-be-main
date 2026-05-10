@@ -52,7 +52,7 @@ public class AuthFacade {
 
         TokenInfo tokens =
                 jwtTokenProvider.generateTokenInfo(
-                        String.valueOf(user.getId()), Map.of("email", user.getEmail()));
+                        String.valueOf(user.getId()), tokenClaims(user));
         refreshTokenStore.save(String.valueOf(user.getId()), tokens.refreshToken());
         return new TokenResponse(
                 tokens.accessToken(),
@@ -86,7 +86,7 @@ public class AuthFacade {
 
         TokenInfo tokens =
                 jwtTokenProvider.generateTokenInfo(
-                        String.valueOf(user.getId()), Map.of("email", user.getEmail()));
+                        String.valueOf(user.getId()), tokenClaims(user));
         refreshTokenStore.save(String.valueOf(user.getId()), tokens.refreshToken());
         return new TokenResponse(
                 tokens.accessToken(),
@@ -107,5 +107,11 @@ public class AuthFacade {
         long ttlMillis = jwtTokenProvider.getRemainingExpirationMillis(accessToken);
         logoutTokenStore.add(accessToken, ttlMillis);
         refreshTokenStore.delete(userId);
+    }
+
+    private Map<String, Object> tokenClaims(User user) {
+        return Map.of(
+                "email", user.getEmail(),
+                "role", user.getRole().authority());
     }
 }

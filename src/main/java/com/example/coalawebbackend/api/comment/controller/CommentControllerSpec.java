@@ -33,7 +33,8 @@ public interface CommentControllerSpec {
     ResponseEntity<CreateCommentResponse> createComment(
             @PathVariable Long postId,
             @Valid @RequestBody CreateCommentRequest request,
-            String userId
+            String userId,
+            jakarta.servlet.http.HttpServletRequest httpRequest
     );
 
     @Operation(summary = "대댓글 생성", description = "댓글에 대댓글을 작성합니다.")
@@ -41,7 +42,8 @@ public interface CommentControllerSpec {
             @PathVariable Long postId,
             @PathVariable Long commentId,
             @Valid @RequestBody CreateCommentRequest request,
-            String userId
+            String userId,
+            jakarta.servlet.http.HttpServletRequest httpRequest
     );
 
     @Operation(summary = "댓글 목록 조회", description = "게시글의 댓글 목록을 조회합니다.")

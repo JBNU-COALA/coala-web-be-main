@@ -37,7 +37,8 @@ public interface PostControllerSpec {
             @PathVariable Long boardId,
             @Valid @RequestBody PostRequest request,
             @Parameter(hidden = true)
-            @AuthenticationPrincipal String userId
+            @AuthenticationPrincipal String userId,
+            jakarta.servlet.http.HttpServletRequest httpRequest
     );
 
 

@@ -3,6 +3,7 @@ package com.example.coalawebbackend.api.info.controller;
 import com.example.coalawebbackend.api.info.dto.InfoArticleRequest;
 import com.example.coalawebbackend.api.info.dto.InfoArticleResponse;
 import com.example.coalawebbackend.api.info.service.InfoArticleService;
+import com.example.coalawebbackend.domain.user.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -10,6 +11,7 @@ import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -27,6 +29,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class InfoArticleController {
 
     private final InfoArticleService infoArticleService;
+    private final UserService userService;
 
     @GetMapping
     @Operation(summary = "정보공유 목록 조회", description = "소식/대회/연구실/자료 글을 조회합니다.")
@@ -46,24 +49,30 @@ public class InfoArticleController {
     @PostMapping
     @Operation(summary = "정보공유 글 생성", description = "정보공유 글을 생성합니다.")
     public ResponseEntity<InfoArticleResponse> createArticle(
+            @AuthenticationPrincipal String userId,
             @Valid @RequestBody InfoArticleRequest request
     ) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(infoArticleService.createArticle(request));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(infoArticleService.createArticle(userService.findById(userId), request));
     }
 
     @PatchMapping("/{articleId}")
     @Operation(summary = "정보공유 글 수정", description = "정보공유 글을 수정합니다.")
     public ResponseEntity<InfoArticleResponse> updateArticle(
+            @AuthenticationPrincipal String userId,
             @PathVariable Long articleId,
             @Valid @RequestBody InfoArticleRequest request
     ) {
-        return ResponseEntity.ok(infoArticleService.updateArticle(articleId, request));
+        return ResponseEntity.ok(infoArticleService.updateArticle(userService.findById(userId), articleId, request));
     }
 
     @DeleteMapping("/{articleId}")
     @Operation(summary = "정보공유 글 삭제", description = "정보공유 글을 삭제합니다.")
-    public ResponseEntity<Void> deleteArticle(@PathVariable Long articleId) {
-        infoArticleService.deleteArticle(articleId);
+    public ResponseEntity<Void> deleteArticle(
+            @AuthenticationPrincipal String userId,
+            @PathVariable Long articleId
+    ) {
+        infoArticleService.deleteArticle(userService.findById(userId), articleId);
         return ResponseEntity.noContent().build();
     }
 

@@ -2,11 +2,13 @@ package com.example.coalawebbackend.domain.commentlike.repository;
 
 import com.example.coalawebbackend.domain.comment.entity.Comment;
 import com.example.coalawebbackend.domain.commentlike.entity.CommentLike;
+import com.example.coalawebbackend.domain.post.entity.Post;
 import com.example.coalawebbackend.domain.user.entity.User;
 import jakarta.persistence.LockModeType;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -17,4 +19,11 @@ public interface CommentLikeRepository extends JpaRepository<CommentLike, Long> 
     Optional<CommentLike> findByUserAndCommentWithLock(@Param("user") User user, @Param("comment") Comment comment);
 
     long countByComment(Comment comment);
+
+    void deleteByComment(Comment comment);
+
+    @Modifying
+    @Query("DELETE FROM CommentLike cl WHERE cl.comment.id IN " +
+            "(SELECT c.id FROM Comment c WHERE c.post = :post)")
+    void deleteByPost(@Param("post") Post post);
 }

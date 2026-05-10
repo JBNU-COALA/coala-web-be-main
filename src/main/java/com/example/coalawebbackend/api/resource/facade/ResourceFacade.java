@@ -21,13 +21,13 @@ public class ResourceFacade {
 
     public ResourceResponse createResource(Long postId, CreateResourceRequest request, String userId) {
         User user = userService.findById(userId);
-        Post post = postService.getPostById(postId);
+        Post post = postService.getVisiblePostById(postId);
 
         return resourceService.createResource(post, user, request);
     }
 
     public List<ResourceResponse> getResources(Long postId) {
-        Post post = postService.getPostById(postId);
+        Post post = postService.getVisiblePostById(postId);
         return resourceService.getResources(post);
     }
 

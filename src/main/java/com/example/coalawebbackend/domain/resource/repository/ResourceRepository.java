@@ -15,4 +15,5 @@ public interface ResourceRepository extends JpaRepository<Resource, Long> {
             "WHERE r.post = :post")
     List<Resource> findByPostWithFetch(@Param("post") Post post);
 
+    void deleteByPost(Post post);
 }
