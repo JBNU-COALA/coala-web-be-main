@@ -39,12 +39,34 @@ public class CommentController implements CommentControllerSpec{
         );
     }
 
+    @PostMapping("/{commentId}/replies")
+    public ResponseEntity<CreateCommentResponse> createReply(
+            @PathVariable Long postId,
+            @PathVariable Long commentId,
+            @Valid @RequestBody CreateCommentRequest request,
+            @AuthenticationPrincipal String userId
+    ) {
+        return ResponseEntity.ok(
+                commentFacade.createReply(postId, commentId, request, userId)
+        );
+    }
+
     @GetMapping
     public ResponseEntity<List<CommentResponse>> getComments(
             @PathVariable Long postId
     ) {
         return ResponseEntity.ok(
                 commentFacade.getComments(postId)
+        );
+    }
+
+    @GetMapping("/{commentId}/replies")
+    public ResponseEntity<List<CommentResponse>> getReplies(
+            @PathVariable Long postId,
+            @PathVariable Long commentId
+    ) {
+        return ResponseEntity.ok(
+                commentFacade.getReplies(postId, commentId)
         );
     }
 

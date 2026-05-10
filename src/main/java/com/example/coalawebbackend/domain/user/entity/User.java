@@ -78,7 +78,7 @@ public class User extends BaseEntity {
 
     // 선택: 성별
     @Enumerated(EnumType.STRING)
-    @Column(name = "gender", length = 10)
+    @Column(name = "gender", length = 20)
     private Gender gender;
 
     // 필수: 소속 학과/학부

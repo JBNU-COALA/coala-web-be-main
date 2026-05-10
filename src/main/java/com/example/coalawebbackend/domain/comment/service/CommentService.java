@@ -25,13 +25,28 @@ public class CommentService {
 
     @Transactional
     public CreateCommentResponse createComment(Post post, User user, CreateCommentRequest request) {
-        Comment comment = Comment.create(post, user, request.getContent());
+        Comment parent = null;
+        Long parentCommentId = request.getParentCommentId();
+        if (parentCommentId != null && parentCommentId > 0) {
+            parent = getCommentInPost(post.getPostId(), parentCommentId);
+        }
+        Comment comment = parent == null
+                ? Comment.create(post, user, request.getContent())
+                : Comment.createReply(post, user, parent, request.getContent());
         return CreateCommentResponse.from(commentRepository.save(comment));
     }
 
     public List<CommentResponse> getComments(Long postId) {
         return commentRepository
-                .findByPost_PostIdOrderByCreatedAtAsc(postId)
+                .findByPost_PostIdAndParentIsNullOrderByCreatedAtAsc(postId)
+                .stream()
+                .map(comment -> CommentResponse.from(comment, getReplies(postId, comment.getId())))
+                .toList();
+    }
+
+    public List<CommentResponse> getReplies(Long postId, Long parentCommentId) {
+        return commentRepository
+                .findByPost_PostIdAndParent_IdOrderByCreatedAtAsc(postId, parentCommentId)
                 .stream()
                 .map(CommentResponse::from)
                 .toList();

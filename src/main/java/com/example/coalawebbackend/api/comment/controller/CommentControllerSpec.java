@@ -36,6 +36,14 @@ public interface CommentControllerSpec {
             String userId
     );
 
+    @Operation(summary = "대댓글 생성", description = "댓글에 대댓글을 작성합니다.")
+    ResponseEntity<CreateCommentResponse> createReply(
+            @PathVariable Long postId,
+            @PathVariable Long commentId,
+            @Valid @RequestBody CreateCommentRequest request,
+            String userId
+    );
+
     @Operation(summary = "댓글 목록 조회", description = "게시글의 댓글 목록을 조회합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "조회 성공",
@@ -45,6 +53,12 @@ public interface CommentControllerSpec {
     })
     ResponseEntity<List<CommentResponse>> getComments(
             @PathVariable Long postId
+    );
+
+    @Operation(summary = "대댓글 목록 조회", description = "댓글의 대댓글 목록을 조회합니다.")
+    ResponseEntity<List<CommentResponse>> getReplies(
+            @PathVariable Long postId,
+            @PathVariable Long commentId
     );
 
     @Operation(summary = "댓글 수정", description = "댓글 내용을 수정합니다.")

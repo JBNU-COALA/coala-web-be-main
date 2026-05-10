@@ -21,7 +21,7 @@ public class DevAccountConfig {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
-    @Value("${app.seed.dev-account.enabled:true}")
+    @Value("${app.seed.dev-account.enabled:false}")
     private boolean enabled;
 
     @Bean

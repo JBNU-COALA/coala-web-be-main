@@ -20,7 +20,7 @@ public class EmailVerificationMailService {
     public void sendVerificationCode(String to, String name, String code) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, "UTF-8");
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
             helper.setFrom(from);
             helper.setTo(to);
             helper.setSubject("[코알라] 이메일 인증번호");

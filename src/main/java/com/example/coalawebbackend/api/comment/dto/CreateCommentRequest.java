@@ -9,10 +9,12 @@ import lombok.NoArgsConstructor;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@AllArgsConstructor
 public class CreateCommentRequest {
 
     @NotBlank(message = "댓글 내용은 필수입니다.")
     @Size(max = 1000, message = "댓글 내용은 1000자 이하로 입력해주세요.")
     private String content;
+
+    private Long parentCommentId;
 }

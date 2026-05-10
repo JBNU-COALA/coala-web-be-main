@@ -68,7 +68,7 @@ class CommentServiceTest {
         User user = mock(User.class);
         Comment comment = Comment.create(post, user, "테스트 댓글");
 
-        given(commentRepository.findByPost_PostIdOrderByCreatedAtAsc(postId))
+        given(commentRepository.findByPost_PostIdAndParentIsNullOrderByCreatedAtAsc(postId))
                 .willReturn(List.of(comment));
 
         // when
@@ -76,7 +76,7 @@ class CommentServiceTest {
 
         // then
         assertThat(responses).hasSize(1);
-        then(commentRepository).should(times(1)).findByPost_PostIdOrderByCreatedAtAsc(postId);
+        then(commentRepository).should(times(1)).findByPost_PostIdAndParentIsNullOrderByCreatedAtAsc(postId);
     }
 
     @Test
@@ -84,7 +84,7 @@ class CommentServiceTest {
     void getComments_empty() {
         // given
         Long postId = 1L;
-        given(commentRepository.findByPost_PostIdOrderByCreatedAtAsc(postId))
+        given(commentRepository.findByPost_PostIdAndParentIsNullOrderByCreatedAtAsc(postId))
                 .willReturn(List.of());
 
         // when

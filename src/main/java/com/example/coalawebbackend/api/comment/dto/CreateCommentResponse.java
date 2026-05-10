@@ -13,12 +13,14 @@ import lombok.Getter;
 public class CreateCommentResponse {
 
     private Long commentId;
+    private Long parentCommentId;
     private String content;
     private LocalDateTime createdAt;
 
     public static CreateCommentResponse from(Comment comment) {
         return CreateCommentResponse.builder()
                 .commentId(comment.getId())
+                .parentCommentId(comment.getParent() == null ? null : comment.getParent().getId())
                 .content(comment.getContent())
                 .createdAt(comment.getCreatedAt())
                 .build();

@@ -13,7 +13,8 @@ import org.springframework.http.HttpHeaders;
 
 @OpenAPIDefinition(
         servers = {
-                @Server(url = "http://localhost:8080", description = "로컬 서버")
+                @Server(url = "http://localhost:8080", description = "로컬 서버"),
+                @Server(url = "https://coala.jbnu.ac.kr", description = "운영 서버")
         }
 )
 @Configuration
@@ -25,7 +26,7 @@ public class SwaggerConfig {
                 new Info()
                         .title("Coala Web Backend API")
                         .version("v1.0.0")
-                        .description("Coala Community Project");
+                        .description("Coala community, services, info sharing, recruit, and member APIs");
 
         String accessKey = "Access Token (Bearer)";
         String refreshKey = "Refresh Token";

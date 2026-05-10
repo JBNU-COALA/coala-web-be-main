@@ -32,6 +32,18 @@ public class CommentFacade {
         return commentService.getComments(postId);
     }
 
+    public List<CommentResponse> getReplies(Long postId, Long commentId) {
+        postService.getPostById(postId);
+        commentService.getCommentInPost(postId, commentId);
+        return commentService.getReplies(postId, commentId);
+    }
+
+    public CreateCommentResponse createReply(Long postId, Long commentId, CreateCommentRequest request, String userId) {
+        Post post = postService.getPostById(postId);
+        User user = userService.findById(userId);
+        return commentService.createComment(post, user, new CreateCommentRequest(request.getContent(), commentId));
+    }
+
     public UpdateCommentResponse updateComment(Long postId, Long commentId, UpdateCommentRequest request, String userId) {
         postService.getPostById(postId);
         User user = userService.findById(userId);
