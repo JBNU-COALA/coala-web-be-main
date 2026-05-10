@@ -86,6 +86,11 @@ public class PostService {
         contentSafetyService.validateMarkdown(request.getTitle());
         contentSafetyService.validateMarkdown(request.getContent());
         saveHistory(post, user, ContentHistoryAction.UPDATED, "before update");
+        if (request.getBoardId() != null && !request.getBoardId().equals(post.getBoard().getBoardId())) {
+            Board targetBoard = boardService.getBoardById(request.getBoardId());
+            permissionService.assertCanCreatePost(user, targetBoard);
+            post.updateBoard(targetBoard);
+        }
         post.update(request.getTitle(), request.getContent());
         if (request.getAttachmentIds() != null || request.getThumbnailAttachmentId() != null) {
             Long thumbnailAttachmentId = attachmentService.syncPostAttachments(

@@ -10,6 +10,8 @@ public record MemberServiceRequest(
         @NotBlank @Size(max = 50) String category,
         @NotBlank @Size(max = 255) String summary,
         @NotBlank @Size(max = 500) String url,
+        @Size(max = 500) String githubUrl,
+        @Size(max = 500) String imageUrl,
         @NotEmpty List<@NotBlank @Size(max = 50) String> tags
 ) {
 }

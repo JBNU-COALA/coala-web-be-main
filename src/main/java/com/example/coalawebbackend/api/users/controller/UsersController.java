@@ -1,15 +1,19 @@
 package com.example.coalawebbackend.api.users.controller;
 
 import com.example.coalawebbackend.api.users.dto.UserDirectoryResponse;
+import com.example.coalawebbackend.api.users.dto.UserProfileRequest;
 import com.example.coalawebbackend.api.users.service.UserDirectoryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -34,6 +38,15 @@ public class UsersController {
             @AuthenticationPrincipal String currentUserId
     ) {
         return ResponseEntity.ok(userDirectoryService.getUser(userId, parseUserId(currentUserId)));
+    }
+
+    @PatchMapping("/me/profile")
+    @Operation(summary = "내 프로필 편집", description = "마이프로필의 소개, 활동 내역, 수상 내역, 공유 저장소를 수정합니다.")
+    public ResponseEntity<UserDirectoryResponse> updateMyProfile(
+            @AuthenticationPrincipal String currentUserId,
+            @Valid @RequestBody UserProfileRequest request
+    ) {
+        return ResponseEntity.ok(userDirectoryService.updateMyProfile(parseUserId(currentUserId), request));
     }
 
     private Long parseUserId(String currentUserId) {

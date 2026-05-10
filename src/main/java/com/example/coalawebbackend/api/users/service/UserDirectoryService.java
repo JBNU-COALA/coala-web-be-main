@@ -1,6 +1,7 @@
 package com.example.coalawebbackend.api.users.service;
 
 import com.example.coalawebbackend.api.users.dto.UserDirectoryResponse;
+import com.example.coalawebbackend.api.users.dto.UserProfileRequest;
 import com.example.coalawebbackend.common.enums.ErrorCode;
 import com.example.coalawebbackend.common.exception.CustomException;
 import com.example.coalawebbackend.domain.user.entity.AcademicStatus;
@@ -8,6 +9,8 @@ import com.example.coalawebbackend.domain.user.entity.User;
 import com.example.coalawebbackend.domain.user.entity.UserRole;
 import com.example.coalawebbackend.domain.user.repository.UserRepository;
 import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.LinkedHashSet;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
@@ -36,6 +39,21 @@ public class UserDirectoryService {
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
     }
 
+    @Transactional
+    public UserDirectoryResponse updateMyProfile(Long currentUserId, UserProfileRequest request) {
+        if (currentUserId == null) {
+            throw new CustomException(ErrorCode.ACCESS_DENIED);
+        }
+        User user = userRepository.findById(currentUserId)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+        user.updateProfile(
+                request.bio(),
+                request.activityNote(),
+                request.awardNote(),
+                normalizeSharedRepositories(request.sharedRepositories()));
+        return toResponse(user, currentUserId);
+    }
+
     private UserDirectoryResponse toResponse(User user, Long currentUserId) {
         String githubHandle = blankToFallback(user.getGithubId(), "");
         String baekjoonHandle = blankToFallback(user.getBaekjoonId(), "");
@@ -54,8 +72,11 @@ public class UserDirectoryService {
                 githubHandle,
                 "https://github.com/" + githubHandle,
                 formatFocus(user.getDepartment(), lab, academicStatus),
+                blankToFallback(user.getProfileBio(), ""),
+                blankToFallback(user.getProfileActivityNote(), ""),
+                blankToFallback(user.getProfileAwardNote(), ""),
                 formatJoinedAt(user.getCreatedAt()),
-                List.of(),
+                splitSharedRepositories(user.getProfileSharedRepositories()),
                 List.of(),
                 baekjoonHandle,
                 "unrated",
@@ -143,5 +164,24 @@ public class UserDirectoryService {
 
     private String blankToFallback(String value, String fallback) {
         return value == null || value.isBlank() ? fallback : value;
+    }
+
+    private List<String> splitSharedRepositories(String value) {
+        if (value == null || value.isBlank()) {
+            return List.of();
+        }
+        return Arrays.stream(value.split("[\\n,]"))
+                .map(String::trim)
+                .filter(repo -> !repo.isBlank())
+                .distinct()
+                .limit(12)
+                .toList();
+    }
+
+    private String normalizeSharedRepositories(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return String.join("\n", new LinkedHashSet<>(splitSharedRepositories(value)));
     }
 }

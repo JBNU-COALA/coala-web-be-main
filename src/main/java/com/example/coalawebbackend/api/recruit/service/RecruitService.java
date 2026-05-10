@@ -22,7 +22,9 @@ import com.example.coalawebbackend.domain.user.service.UserService;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -134,6 +136,14 @@ public class RecruitService {
     public RecruitApplicationResponse apply(String recruitId, RecruitApplicationRequest request, String userId) {
         RecruitPost recruit = getRecruitEntity(recruitId);
         User user = userService.findById(userId);
+        RecruitApplication existingApplication = recruitApplicationRepository
+                .findFirstByRecruitPost_IdAndUser_IdOrderBySubmittedAtDesc(recruitId, user.getId())
+                .orElse(null);
+        if (existingApplication != null) {
+            existingApplication.update(request.role(), request.body());
+            return toApplicationResponse(existingApplication);
+        }
+
         RecruitApplication application = RecruitApplication.builder()
                 .recruitPost(recruit)
                 .user(user)
@@ -147,8 +157,10 @@ public class RecruitService {
 
     public List<RecruitApplicationResponse> getMyApplications(String userId) {
         User user = userService.findById(userId);
+        Set<String> seenRecruitIds = new HashSet<>();
         return recruitApplicationRepository.findByUser_IdOrderBySubmittedAtDesc(user.getId())
                 .stream()
+                .filter(application -> seenRecruitIds.add(application.getRecruitPost().getId()))
                 .map(this::toApplicationResponse)
                 .toList();
     }

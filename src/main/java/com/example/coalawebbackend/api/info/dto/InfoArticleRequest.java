@@ -11,6 +11,6 @@ public record InfoArticleRequest(
         @NotBlank @Size(max = 50) String sourceName,
         @NotBlank @Size(max = 20) String sourceDate,
         @NotBlank @Size(max = 12000) String content,
-        @NotBlank @Size(max = 500) String imageUrl
+        @Size(max = 500) String imageUrl
 ) {
 }

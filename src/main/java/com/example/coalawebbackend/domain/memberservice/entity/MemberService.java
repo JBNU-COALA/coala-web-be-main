@@ -89,11 +89,14 @@ public class MemberService extends BaseEntity {
     @Builder.Default
     private List<String> stack = new ArrayList<>();
 
-    public void updateCatalog(String title, String category, String summary, String url, List<String> tags) {
+    public void updateCatalog(String title, String category, String summary, String url,
+                              String githubUrl, String imageUrl, List<String> tags) {
         this.title = title;
         this.category = category;
         this.summary = summary;
         this.url = url;
+        this.githubUrl = githubUrl;
+        this.imageUrl = imageUrl;
         this.tags = new ArrayList<>(tags == null ? List.of() : tags);
     }
 

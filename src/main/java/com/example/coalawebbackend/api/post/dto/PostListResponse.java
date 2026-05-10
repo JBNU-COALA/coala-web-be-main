@@ -26,6 +26,7 @@ public class PostListResponse {
     private int viewCount;
     private long commentCount;
     private long likeCount;
+    private Long thumbnailAttachmentId;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -53,6 +54,7 @@ public class PostListResponse {
                 .viewCount(post.getViewCount())
                 .commentCount(commentCount)
                 .likeCount(likeCount)
+                .thumbnailAttachmentId(post.getThumbnailAttachmentId())
                 .createdAt(post.getCreatedAt())
                 .updatedAt(post.getUpdatedAt())
                 .build();

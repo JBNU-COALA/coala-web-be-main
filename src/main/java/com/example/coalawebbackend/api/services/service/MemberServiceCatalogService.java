@@ -40,8 +40,8 @@ public class MemberServiceCatalogService {
                 .owner("코알라")
                 .summary(request.summary())
                 .url(normalizeUrl(request.url()))
-                .githubUrl(buildGithubUrl(id))
-                .imageUrl(defaultImageFor(request.category()))
+                .githubUrl(normalizeOptionalUrl(request.githubUrl()))
+                .imageUrl(blankToEmpty(request.imageUrl()))
                 .tags(request.tags())
                 .status("운영중")
                 .audience("코알라 부원")
@@ -69,6 +69,8 @@ public class MemberServiceCatalogService {
                 request.category(),
                 request.summary(),
                 normalizeUrl(request.url()),
+                request.githubUrl() == null ? service.getGithubUrl() : normalizeOptionalUrl(request.githubUrl()),
+                request.imageUrl() == null ? service.getImageUrl() : blankToEmpty(request.imageUrl()),
                 request.tags());
         return toResponse(service);
     }
@@ -92,8 +94,8 @@ public class MemberServiceCatalogService {
                 service.getOwner(),
                 service.getSummary(),
                 service.getUrl(),
-                service.getGithubUrl(),
-                service.getImageUrl(),
+                displayGithubUrl(service),
+                displayImageUrl(service.getImageUrl()),
                 service.getTags(),
                 service.getStatus(),
                 service.getAudience(),
@@ -122,16 +124,30 @@ public class MemberServiceCatalogService {
                 : "https://" + url;
     }
 
-    private String buildGithubUrl(String id) {
-        return "https://github.com/JBNU-COALA/" + id;
+    private String normalizeOptionalUrl(String url) {
+        if (url == null || url.isBlank()) {
+            return "";
+        }
+        return normalizeUrl(url.trim());
     }
 
-    private String defaultImageFor(String category) {
-        return switch (category == null ? "" : category.toLowerCase()) {
-            case "ai" -> "https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&w=900&q=80";
-            case "learning" -> "https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=900&q=80";
-            case "community" -> "https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=900&q=80";
-            default -> "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?auto=format&fit=crop&w=900&q=80";
-        };
+    private String displayGithubUrl(MemberService service) {
+        String githubUrl = service.getGithubUrl();
+        if (githubUrl == null || githubUrl.isBlank()) {
+            return "";
+        }
+        String generatedDefault = "https://github.com/JBNU-COALA/" + service.getId();
+        return generatedDefault.equals(githubUrl) ? "" : githubUrl;
+    }
+
+    private String displayImageUrl(String imageUrl) {
+        if (imageUrl == null || imageUrl.isBlank() || imageUrl.contains("images.unsplash.com")) {
+            return "";
+        }
+        return imageUrl;
+    }
+
+    private String blankToEmpty(String value) {
+        return value == null || value.isBlank() ? "" : value.trim();
     }
 }

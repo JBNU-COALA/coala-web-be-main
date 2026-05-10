@@ -13,6 +13,8 @@ import lombok.Getter;
 public class UpdatePostResponse {
 
     private Long postId;
+    private Long boardId;
+    private String boardName;
     private String title;
     private String content;
     private LocalDateTime updatedAt;
@@ -20,6 +22,8 @@ public class UpdatePostResponse {
     public static UpdatePostResponse from(Post post) {
         return UpdatePostResponse.builder()
                 .postId(post.getPostId())
+                .boardId(post.getBoard().getBoardId())
+                .boardName(post.getBoard().getName())
                 .title(post.getTitle())
                 .content(post.getContent())
                 .updatedAt(post.getUpdatedAt())

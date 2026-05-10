@@ -74,6 +74,18 @@ public class User extends BaseEntity {
     @Column(name = "linkedin_url", length = 255)
     private String linkedinUrl;
 
+    @Column(name = "profile_bio", length = 1000)
+    private String profileBio;
+
+    @Column(name = "profile_activity_note", columnDefinition = "TEXT")
+    private String profileActivityNote;
+
+    @Column(name = "profile_award_note", columnDefinition = "TEXT")
+    private String profileAwardNote;
+
+    @Column(name = "profile_shared_repositories", length = 1000)
+    private String profileSharedRepositories;
+
     // 선택: 생년월일 (LocalDate 로 정규화)
     @Column(name = "birth_date")
     private LocalDate birthDate;
@@ -126,6 +138,21 @@ public class User extends BaseEntity {
 
     public void grantRole(UserRole role) {
         this.role = role == null ? UserRole.USER : role;
+    }
+
+    public void updateProfile(String bio, String activityNote, String awardNote, String sharedRepositories) {
+        this.profileBio = normalizeBlank(bio);
+        this.profileActivityNote = normalizeBlank(activityNote);
+        this.profileAwardNote = normalizeBlank(awardNote);
+        this.profileSharedRepositories = normalizeBlank(sharedRepositories);
+    }
+
+    private String normalizeBlank(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isBlank() ? null : trimmed;
     }
 
     public void syncSeedAccount(

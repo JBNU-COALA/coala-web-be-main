@@ -58,7 +58,7 @@ public class InfoArticleService {
                 .sourceName(request.sourceName())
                 .sourceDate(LocalDate.parse(request.sourceDate()))
                 .content(request.content())
-                .imageUrl(request.imageUrl())
+                .imageUrl(blankToEmpty(request.imageUrl()))
                 .build();
         return toResponse(infoArticleRepository.save(article));
     }
@@ -75,7 +75,7 @@ public class InfoArticleService {
                 request.sourceName(),
                 LocalDate.parse(request.sourceDate()),
                 request.content(),
-                request.imageUrl());
+                blankToEmpty(request.imageUrl()));
         return toResponse(article);
     }
 
@@ -101,6 +101,10 @@ public class InfoArticleService {
         return (article.getTitle() + " " + article.getMeta() + " " + article.getSourceName() + " " + article.getTag())
                 .toLowerCase()
                 .contains(query);
+    }
+
+    private String blankToEmpty(String value) {
+        return StringUtils.hasText(value) ? value.trim() : "";
     }
 
     private InfoArticleResponse toResponse(InfoArticle article) {

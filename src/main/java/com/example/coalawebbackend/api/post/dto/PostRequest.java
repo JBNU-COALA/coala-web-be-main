@@ -16,6 +16,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class PostRequest {
 
+    private Long boardId;
+
     @NotBlank(message = "제목은 필수입니다.")
     @Size(min = 1, max = 100, message = "제목은 1자 이상 100자 이하로 입력해주세요.")
     private String title;

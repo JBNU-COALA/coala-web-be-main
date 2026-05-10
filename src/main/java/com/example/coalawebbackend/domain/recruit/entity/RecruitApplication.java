@@ -57,4 +57,11 @@ public class RecruitApplication extends BaseEntity {
 
     @Column(name = "status", nullable = false, length = 30)
     private String status;
+
+    public void update(String role, String body) {
+        this.role = role;
+        this.body = body;
+        this.submittedAt = LocalDateTime.now();
+        this.status = "submitted";
+    }
 }

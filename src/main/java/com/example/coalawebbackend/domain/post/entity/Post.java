@@ -96,6 +96,10 @@ public class Post extends BaseEntity {
         this.content = content;
     }
 
+    public void updateBoard(Board board) {
+        this.board = board;
+    }
+
     public void updateThumbnailAttachmentId(Long thumbnailAttachmentId) {
         this.thumbnailAttachmentId = thumbnailAttachmentId;
     }

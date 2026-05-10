@@ -189,10 +189,12 @@ class PostServiceTest {
         // given
         Long postId = 1L;
         User user = mock(User.class);
+        Board board = mock(Board.class);
         Post post = mock(Post.class);
         PostRequest request = mock(PostRequest.class);
 
         given(postRepository.findById(postId)).willReturn(Optional.of(post));
+        given(post.getBoard()).willReturn(board);
 
         // when
         UpdatePostResponse response = postService.updatePost(postId, request, user);
@@ -201,6 +203,35 @@ class PostServiceTest {
         assertThat(response).isNotNull();
         then(post).should(times(1)).update(request.getTitle(), request.getContent());
         then(postHistoryRepository).should(times(1)).save(any(PostHistory.class));
+    }
+
+    @Test
+    @DisplayName("게시글 수정 성공 - 게시판 변경")
+    void updatePost_success_changeBoard() {
+        // given
+        Long postId = 1L;
+        User user = mock(User.class);
+        Board currentBoard = mock(Board.class);
+        Board targetBoard = mock(Board.class);
+        Post post = mock(Post.class);
+        PostRequest request = mock(PostRequest.class);
+
+        given(postRepository.findById(postId)).willReturn(Optional.of(post));
+        given(request.getBoardId()).willReturn(2L);
+        given(post.getBoard()).willReturn(currentBoard, targetBoard);
+        given(currentBoard.getBoardId()).willReturn(1L);
+        given(targetBoard.getBoardId()).willReturn(2L);
+        given(boardService.getBoardById(2L)).willReturn(targetBoard);
+
+        // when
+        UpdatePostResponse response = postService.updatePost(postId, request, user);
+
+        // then
+        assertThat(response).isNotNull();
+        then(boardService).should(times(1)).getBoardById(2L);
+        then(permissionService).should(times(1)).assertCanCreatePost(user, targetBoard);
+        then(post).should(times(1)).updateBoard(targetBoard);
+        then(post).should(times(1)).update(request.getTitle(), request.getContent());
     }
 
     @Test
