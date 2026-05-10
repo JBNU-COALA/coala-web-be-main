@@ -44,12 +44,12 @@ public class InstanceApplicationService {
     }
 
     @Transactional
-    public InstanceApplicationResponse createApplication(InstanceApplicationRequest request) {
+    public InstanceApplicationResponse createApplication(User actor, InstanceApplicationRequest request) {
         InstanceApplication application = InstanceApplication.builder()
                 .id(nextApplicationId())
-                .applicantName(defaultIfBlank(request.applicantName(), "코알라 신청자"))
-                .studentId(defaultIfBlank(request.studentId(), "00000000"))
-                .keyEmail(defaultIfBlank(request.keyEmail(), "coala.member@example.com"))
+                .applicantName(defaultIfBlank(request.applicantName(), actor.getName()))
+                .studentId(defaultIfBlank(request.studentId(), actor.getStudentId()))
+                .keyEmail(defaultIfBlank(request.keyEmail(), actor.getEmail()))
                 .instanceType(request.instanceType())
                 .purpose(request.purpose())
                 .duration(request.duration())

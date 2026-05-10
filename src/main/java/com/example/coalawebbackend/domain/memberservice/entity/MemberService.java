@@ -101,7 +101,7 @@ public class MemberService extends BaseEntity {
     }
 
     public void retire() {
-        this.status = "중지";
+        this.status = "운영중지";
         this.visibility = "Private";
         this.period = "운영 중지";
     }

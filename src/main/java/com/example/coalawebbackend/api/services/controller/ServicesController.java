@@ -102,10 +102,11 @@ public class ServicesController {
     @PostMapping("/instances/applications")
     @Operation(summary = "인스턴스 신청 생성", description = "인스턴스 대여 신청을 생성합니다.")
     public ResponseEntity<InstanceApplicationResponse> createInstanceApplication(
+            @AuthenticationPrincipal String userId,
             @Valid @RequestBody InstanceApplicationRequest request
     ) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(instanceApplicationService.createApplication(request));
+                .body(instanceApplicationService.createApplication(userService.findById(userId), request));
     }
 
     @PatchMapping("/instances/applications/{applicationId}")

@@ -663,7 +663,7 @@ class ApiSmokeTest {
 
         mockMvc.perform(get("/api/services/{serviceId}", createdServiceId))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("중지"));
+                .andExpect(jsonPath("$.status").value("운영중지"));
 
         MvcResult openApiResult = mockMvc.perform(get("/v3/api-docs"))
                 .andExpect(status().isOk())

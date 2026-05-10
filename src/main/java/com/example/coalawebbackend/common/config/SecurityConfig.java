@@ -53,6 +53,7 @@ public class SecurityConfig {
                                     "/api/services",
                                     "/api/services/*",
                                     "/api/github/public-activity",
+                                    "/api/site/about",
                                     "/api/info",
                                     "/api/info/*",
                                     "/api/recruits",
