@@ -56,8 +56,12 @@ public class UserCreateRequest {
     private Gender gender;
 
     @Size(max = 100)
-    @Schema(example = "컴퓨터공학과", description = "기존 호환용 선택 필드")
+    @Schema(example = "컴퓨터인공지능학부", description = "학부/학과")
     private String department;
+
+    @Size(max = 150)
+    @Schema(example = "데이터마이닝연구실 : 송현제교수님", description = "소속 연구실")
+    private String lab;
 
     @NotBlank
     @Pattern(regexp = "\\d{4,20}", message = "학번은 4~20자리 숫자여야 합니다.")
@@ -98,6 +102,7 @@ public class UserCreateRequest {
                 .birthDate(birthDate)
                 .gender(gender)
                 .department(normalizeDepartment())
+                .lab(normalizeOptional(lab))
                 .studentId(studentId)
                 .grade(grade)
                 .githubId(githubId.trim())
@@ -108,7 +113,7 @@ public class UserCreateRequest {
 
     private String normalizeDepartment() {
         return department == null || department.isBlank()
-                ? "미입력"
+                ? "컴퓨터인공지능학부"
                 : department.trim();
     }
 

@@ -42,6 +42,7 @@ public class DevAccountConfig {
                                 LocalDate.of(2000, 1, 1),
                                 null,
                                 "컴퓨터인공지능학부",
+                                "코알라",
                                 "20180001",
                                 4,
                                 "coala-test-2018",
@@ -56,6 +57,7 @@ public class DevAccountConfig {
                             .birthDate(LocalDate.of(2000, 1, 1))
                             .gender(null)
                             .department("컴퓨터인공지능학부")
+                            .lab("코알라")
                             .studentId("20180001")
                             .grade(4)
                             .githubId("coala-test-2018")

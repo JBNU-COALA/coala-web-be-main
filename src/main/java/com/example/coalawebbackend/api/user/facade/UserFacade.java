@@ -29,6 +29,7 @@ public class UserFacade {
                         .birthDate(user.getBirthDate())
                         .gender(user.getGender())
                         .department(user.getDepartment())
+                        .lab(user.getLab())
                         .studentId(user.getStudentId())
                         .grade(user.getGrade())
                         .githubId(user.getGithubId())

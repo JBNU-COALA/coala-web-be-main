@@ -26,6 +26,7 @@ public class UserResponse {
     private LocalDate birthDate;
     private Gender gender;
     private String department;
+    private String lab;
     private String studentId;
     private Integer grade;
     private String githubId;
@@ -45,6 +46,7 @@ public class UserResponse {
                 .birthDate(user.getBirthDate())
                 .gender(user.getGender())
                 .department(user.getDepartment())
+                .lab(user.getLab())
                 .studentId(user.getStudentId())
                 .grade(user.getGrade())
                 .githubId(user.getGithubId())

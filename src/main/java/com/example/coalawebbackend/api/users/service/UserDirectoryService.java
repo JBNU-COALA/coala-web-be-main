@@ -41,6 +41,7 @@ public class UserDirectoryService {
         String baekjoonHandle = blankToFallback(user.getBaekjoonId(), "");
         String academicStatus = formatAcademicStatus(user.getAcademicStatus());
         String grade = formatGrade(user);
+        String lab = blankToFallback(user.getLab(), user.getDepartment());
 
         return new UserDirectoryResponse(
                 user.getId(),
@@ -49,10 +50,10 @@ public class UserDirectoryService {
                 toneFor(user.getId()),
                 formatRole(user),
                 grade,
-                user.getDepartment(),
+                lab,
                 githubHandle,
                 "https://github.com/" + githubHandle,
-                user.getDepartment() + " · " + academicStatus,
+                formatFocus(user.getDepartment(), lab, academicStatus),
                 formatJoinedAt(user.getCreatedAt()),
                 List.of(),
                 List.of(),
@@ -125,6 +126,15 @@ public class UserDirectoryService {
             return "운영진";
         }
         return "일반 회원";
+    }
+
+    private String formatFocus(String department, String lab, String academicStatus) {
+        String normalizedDepartment = blankToFallback(department, "소속 미등록");
+        String normalizedLab = blankToFallback(lab, "");
+        if (normalizedLab.isBlank() || normalizedLab.equals(normalizedDepartment)) {
+            return normalizedDepartment + " · " + academicStatus;
+        }
+        return normalizedDepartment + " · " + normalizedLab + " · " + academicStatus;
     }
 
     private String formatJoinedAt(LocalDateTime createdAt) {

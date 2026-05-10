@@ -85,6 +85,7 @@ public class CoalaDataSeedConfig {
                         .birthDate(LocalDate.of(2000, 1, 1))
                         .gender(Gender.PREFER_NOT_TO_SAY)
                         .department("컴퓨터인공지능학부")
+                        .lab("코알라")
                         .studentId("20990001")
                         .grade(4)
                         .githubId("coala-seed")

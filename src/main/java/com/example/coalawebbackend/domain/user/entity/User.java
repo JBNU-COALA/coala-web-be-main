@@ -32,6 +32,7 @@ import lombok.NoArgsConstructor;
         indexes = {
                 @Index(name = "idx_users_academic_status", columnList = "academic_status"),
                 @Index(name = "idx_users_grade", columnList = "grade"),
+                @Index(name = "idx_users_lab", columnList = "lab"),
                 @Index(name = "idx_users_role", columnList = "role")
         }
 )
@@ -86,6 +87,10 @@ public class User extends BaseEntity {
     @Column(name = "department", nullable = false, length = 100)
     private String department;
 
+    // 선택: 소속 연구실
+    @Column(name = "lab", length = 150)
+    private String lab;
+
     // 필수: 학번 (unique)
     @Column(name = "student_id", nullable = false, length = 20)
     private String studentId;
@@ -130,6 +135,7 @@ public class User extends BaseEntity {
             LocalDate birthDate,
             Gender gender,
             String department,
+            String lab,
             String studentId,
             Integer grade,
             String githubId,
@@ -140,6 +146,7 @@ public class User extends BaseEntity {
         this.birthDate = birthDate;
         this.gender = gender;
         this.department = department;
+        this.lab = lab;
         this.studentId = studentId;
         this.grade = grade;
         this.githubId = githubId;
