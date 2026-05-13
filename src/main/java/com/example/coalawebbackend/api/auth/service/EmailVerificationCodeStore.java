@@ -14,6 +14,7 @@ import org.springframework.stereotype.Component;
 public class EmailVerificationCodeStore {
 
     private static final String KEY_PREFIX = "EV:";
+    private static final String PASSWORD_RESET_KEY_PREFIX = "PR:";
 
     private final StringRedisTemplate redisTemplate;
 
@@ -23,11 +24,11 @@ public class EmailVerificationCodeStore {
     public void save(String email, String code) {
         redisTemplate
                 .opsForValue()
-                .set(key(email), hash(code), Duration.ofMinutes(ttlMinutes));
+                .set(key(KEY_PREFIX, email), hash(code), Duration.ofMinutes(ttlMinutes));
     }
 
     public boolean validate(String email, String code) {
-        String stored = redisTemplate.opsForValue().get(key(email));
+        String stored = redisTemplate.opsForValue().get(key(KEY_PREFIX, email));
         if (stored == null) {
             return false;
         }
@@ -37,11 +38,31 @@ public class EmailVerificationCodeStore {
     }
 
     public void delete(String email) {
-        redisTemplate.delete(key(email));
+        redisTemplate.delete(key(KEY_PREFIX, email));
     }
 
-    private String key(String email) {
-        return KEY_PREFIX + email.trim().toLowerCase();
+    public void savePasswordReset(String email, String code) {
+        redisTemplate
+                .opsForValue()
+                .set(key(PASSWORD_RESET_KEY_PREFIX, email), hash(code), Duration.ofMinutes(ttlMinutes));
+    }
+
+    public boolean validatePasswordReset(String email, String code) {
+        String stored = redisTemplate.opsForValue().get(key(PASSWORD_RESET_KEY_PREFIX, email));
+        if (stored == null) {
+            return false;
+        }
+        return MessageDigest.isEqual(
+                stored.getBytes(StandardCharsets.UTF_8),
+                hash(code).getBytes(StandardCharsets.UTF_8));
+    }
+
+    public void deletePasswordReset(String email) {
+        redisTemplate.delete(key(PASSWORD_RESET_KEY_PREFIX, email));
+    }
+
+    private String key(String prefix, String email) {
+        return prefix + email.trim().toLowerCase();
     }
 
     private static String hash(String value) {

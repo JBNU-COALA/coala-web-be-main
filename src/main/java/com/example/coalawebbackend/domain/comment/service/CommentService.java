@@ -5,6 +5,7 @@ import com.example.coalawebbackend.api.comment.dto.CreateCommentRequest;
 import com.example.coalawebbackend.api.comment.dto.CreateCommentResponse;
 import com.example.coalawebbackend.api.comment.dto.UpdateCommentRequest;
 import com.example.coalawebbackend.api.comment.dto.UpdateCommentResponse;
+import com.example.coalawebbackend.api.notification.service.NotificationService;
 import com.example.coalawebbackend.common.enums.ErrorCode;
 import com.example.coalawebbackend.common.exception.CustomException;
 import com.example.coalawebbackend.domain.comment.entity.Comment;
@@ -33,6 +34,7 @@ public class CommentService {
     private final CommentHistoryRepository commentHistoryRepository;
     private final PermissionService permissionService;
     private final ContentSafetyService contentSafetyService;
+    private final NotificationService notificationService;
     private static final List<CommentStatus> PUBLIC_COMMENT_STATUSES = List.of(
             CommentStatus.ACTIVE,
             CommentStatus.DELETED,
@@ -55,6 +57,7 @@ public class CommentService {
                 : Comment.createReply(post, user, parent, request.getContent());
         Comment savedComment = commentRepository.save(comment);
         saveHistory(savedComment, user, ContentHistoryAction.CREATED, null);
+        notificationService.notifyCommentCreated(post, savedComment);
         return CreateCommentResponse.from(savedComment);
     }
 

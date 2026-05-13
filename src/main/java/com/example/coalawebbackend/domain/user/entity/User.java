@@ -140,6 +140,10 @@ public class User extends BaseEntity {
         this.role = role == null ? UserRole.USER : role;
     }
 
+    public void changePassword(String encodedPassword) {
+        this.password = encodedPassword;
+    }
+
     public void updateProfile(String bio, String activityNote, String awardNote, String sharedRepositories) {
         this.profileBio = normalizeBlank(bio);
         this.profileActivityNote = normalizeBlank(activityNote);

@@ -4,10 +4,13 @@ import com.example.coalawebbackend.api.auth.dto.EmailVerificationConfirmRequest;
 import com.example.coalawebbackend.api.auth.dto.EmailVerificationResendRequest;
 import com.example.coalawebbackend.api.auth.dto.EmailVerificationResponse;
 import com.example.coalawebbackend.api.auth.dto.LoginRequest;
+import com.example.coalawebbackend.api.auth.dto.PasswordResetConfirmRequest;
+import com.example.coalawebbackend.api.auth.dto.PasswordResetRequest;
 import com.example.coalawebbackend.api.auth.dto.TokenRefreshRequest;
 import com.example.coalawebbackend.api.auth.dto.TokenResponse;
 import com.example.coalawebbackend.api.auth.facade.AuthFacade;
 import com.example.coalawebbackend.api.auth.service.EmailVerificationService;
+import com.example.coalawebbackend.api.auth.service.PasswordResetService;
 import com.example.coalawebbackend.common.ratelimit.RateLimitService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -27,6 +30,7 @@ public class AuthController implements AuthControllerSpec {
 
     private final AuthFacade authFacade;
     private final EmailVerificationService emailVerificationService;
+    private final PasswordResetService passwordResetService;
     private final RateLimitService rateLimitService;
 
     @PostMapping("/login")
@@ -71,6 +75,22 @@ public class AuthController implements AuthControllerSpec {
     public ResponseEntity<EmailVerificationResponse> confirmEmailVerification(
             @Valid @RequestBody EmailVerificationConfirmRequest request) {
         return ResponseEntity.ok(emailVerificationService.confirm(request.email(), request.code()));
+    }
+
+    @PostMapping("/password-reset/request")
+    @Override
+    public ResponseEntity<EmailVerificationResponse> requestPasswordReset(
+            @Valid @RequestBody PasswordResetRequest request,
+            HttpServletRequest httpRequest) {
+        rateLimitService.check(httpRequest, "auth:password-reset", 3, Duration.ofMinutes(5));
+        return ResponseEntity.ok(passwordResetService.issue(request.email()));
+    }
+
+    @PostMapping("/password-reset/confirm")
+    @Override
+    public ResponseEntity<EmailVerificationResponse> confirmPasswordReset(
+            @Valid @RequestBody PasswordResetConfirmRequest request) {
+        return ResponseEntity.ok(passwordResetService.confirm(request.email(), request.code(), request.newPassword()));
     }
 
     private String resolveToken(HttpServletRequest request) {

@@ -4,6 +4,8 @@ import com.example.coalawebbackend.api.auth.dto.EmailVerificationConfirmRequest;
 import com.example.coalawebbackend.api.auth.dto.EmailVerificationResendRequest;
 import com.example.coalawebbackend.api.auth.dto.EmailVerificationResponse;
 import com.example.coalawebbackend.api.auth.dto.LoginRequest;
+import com.example.coalawebbackend.api.auth.dto.PasswordResetConfirmRequest;
+import com.example.coalawebbackend.api.auth.dto.PasswordResetRequest;
 import com.example.coalawebbackend.api.auth.dto.TokenRefreshRequest;
 import com.example.coalawebbackend.api.auth.dto.TokenResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -78,4 +80,28 @@ public interface AuthControllerSpec {
     })
     ResponseEntity<EmailVerificationResponse> confirmEmailVerification(
             EmailVerificationConfirmRequest request);
+
+    @Operation(summary = "비밀번호 변경 인증번호 발송", description = "가입된 이메일로 비밀번호 변경 인증번호를 발송합니다.")
+    @ApiResponses({
+        @ApiResponse(
+                responseCode = "200",
+                description = "비밀번호 변경 인증번호 발송",
+                content = @Content(schema = @Schema(implementation = EmailVerificationResponse.class))),
+        @ApiResponse(responseCode = "404", description = "사용자 없음", content = @Content)
+    })
+    ResponseEntity<EmailVerificationResponse> requestPasswordReset(
+            PasswordResetRequest request,
+            jakarta.servlet.http.HttpServletRequest httpRequest);
+
+    @Operation(summary = "비밀번호 변경 확인", description = "이메일 인증번호를 확인한 뒤 새 비밀번호로 변경합니다.")
+    @ApiResponses({
+        @ApiResponse(
+                responseCode = "200",
+                description = "비밀번호 변경 완료",
+                content = @Content(schema = @Schema(implementation = EmailVerificationResponse.class))),
+        @ApiResponse(responseCode = "400", description = "인증번호 오류 또는 만료", content = @Content),
+        @ApiResponse(responseCode = "404", description = "사용자 없음", content = @Content)
+    })
+    ResponseEntity<EmailVerificationResponse> confirmPasswordReset(
+            PasswordResetConfirmRequest request);
 }

@@ -14,6 +14,7 @@ import com.example.coalawebbackend.api.comment.dto.CreateCommentRequest;
 import com.example.coalawebbackend.api.comment.dto.CreateCommentResponse;
 import com.example.coalawebbackend.api.comment.dto.UpdateCommentRequest;
 import com.example.coalawebbackend.api.comment.dto.UpdateCommentResponse;
+import com.example.coalawebbackend.api.notification.service.NotificationService;
 import com.example.coalawebbackend.common.enums.ErrorCode;
 import com.example.coalawebbackend.common.exception.CustomException;
 import com.example.coalawebbackend.domain.comment.entity.Comment;
@@ -57,6 +58,9 @@ class CommentServiceTest {
     @Mock
     private ContentSafetyService contentSafetyService;
 
+    @Mock
+    private NotificationService notificationService;
+
     @Test
     @DisplayName("댓글 생성 성공")
     void createComment_success() {
@@ -75,6 +79,7 @@ class CommentServiceTest {
         // then
         assertThat(response).isNotNull();
         then(commentRepository).should(times(1)).save(any(Comment.class));
+        then(notificationService).should(times(1)).notifyCommentCreated(post, comment);
     }
 
     @Test

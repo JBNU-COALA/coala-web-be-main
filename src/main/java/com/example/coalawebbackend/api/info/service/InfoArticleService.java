@@ -2,6 +2,7 @@ package com.example.coalawebbackend.api.info.service;
 
 import com.example.coalawebbackend.api.info.dto.InfoArticleRequest;
 import com.example.coalawebbackend.api.info.dto.InfoArticleResponse;
+import com.example.coalawebbackend.api.notification.service.NotificationService;
 import com.example.coalawebbackend.common.enums.ErrorCode;
 import com.example.coalawebbackend.common.exception.CustomException;
 import com.example.coalawebbackend.domain.info.entity.InfoArticle;
@@ -26,6 +27,7 @@ public class InfoArticleService {
 
     private final InfoArticleRepository infoArticleRepository;
     private final PermissionService permissionService;
+    private final NotificationService notificationService;
 
     public List<InfoArticleResponse> getArticles(String filter, String query) {
         InfoCategory category = InfoCategory.from(filter);
@@ -60,7 +62,9 @@ public class InfoArticleService {
                 .content(request.content())
                 .imageUrl(blankToEmpty(request.imageUrl()))
                 .build();
-        return toResponse(infoArticleRepository.save(article));
+        InfoArticle savedArticle = infoArticleRepository.save(article);
+        notificationService.notifyInterestedInfo(actor, savedArticle);
+        return toResponse(savedArticle);
     }
 
     @Transactional

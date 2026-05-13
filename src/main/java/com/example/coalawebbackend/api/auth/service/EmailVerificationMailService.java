@@ -18,34 +18,63 @@ public class EmailVerificationMailService {
     private String from;
 
     public void sendVerificationCode(String to, String name, String code) {
+        sendCode(
+                to,
+                name,
+                code,
+                "[코알라] 이메일 인증번호",
+                "이메일 인증",
+                "코알라 회원가입 이메일 인증번호입니다.",
+                "아래 인증번호를 코알라 회원가입 화면에 입력해주세요.");
+    }
+
+    public void sendPasswordResetCode(String to, String name, String code) {
+        sendCode(
+                to,
+                name,
+                code,
+                "[코알라] 비밀번호 변경 인증번호",
+                "비밀번호 변경",
+                "코알라 비밀번호 변경 인증번호입니다.",
+                "아래 인증번호를 비밀번호 변경 화면에 입력해주세요.");
+    }
+
+    private void sendCode(
+            String to,
+            String name,
+            String code,
+            String subject,
+            String title,
+            String plainPurpose,
+            String htmlInstruction) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
             helper.setFrom(from);
             helper.setTo(to);
-            helper.setSubject("[코알라] 이메일 인증번호");
-            helper.setText(buildPlainText(name, code), buildHtml(name, code));
+            helper.setSubject(subject);
+            helper.setText(buildPlainText(name, code, plainPurpose), buildHtml(name, code, title, htmlInstruction));
             mailSender.send(message);
         } catch (MessagingException e) {
             throw new IllegalStateException("Failed to create email verification message", e);
         }
     }
 
-    private String buildPlainText(String name, String code) {
+    private String buildPlainText(String name, String code, String purpose) {
         String displayName = name == null || name.isBlank() ? "코알라 회원" : name;
         return """
                 안녕하세요, %s님.
 
-                코알라 회원가입 이메일 인증번호입니다.
+                %s
 
                 인증번호: %s
 
                 이 번호는 10분 동안 사용할 수 있습니다.
                 본인이 요청하지 않았다면 이 메일을 무시해주세요.
-                """.formatted(displayName, code);
+                """.formatted(displayName, purpose, code);
     }
 
-    private String buildHtml(String name, String code) {
+    private String buildHtml(String name, String code, String title, String instruction) {
         String displayName = name == null || name.isBlank() ? "코알라 회원" : name;
         return """
                 <!doctype html>
@@ -55,10 +84,10 @@ public class EmailVerificationMailService {
                     <div style="background:#ffffff;border:1px solid #d7e3dd;border-radius:16px;overflow:hidden;">
                       <div style="background:#123f31;padding:28px 30px;color:#ffffff;">
                         <p style="margin:0 0 8px;font-size:13px;font-weight:700;letter-spacing:.08em;">COALA</p>
-                        <h1 style="margin:0;font-size:26px;line-height:1.35;">이메일 인증</h1>
+                        <h1 style="margin:0;font-size:26px;line-height:1.35;">%s</h1>
                       </div>
                       <div style="padding:30px;">
-                        <p style="margin:0 0 18px;font-size:16px;line-height:1.7;">안녕하세요, <strong>%s</strong>님.<br/>아래 인증번호를 코알라 회원가입 화면에 입력해주세요.</p>
+                        <p style="margin:0 0 18px;font-size:16px;line-height:1.7;">안녕하세요, <strong>%s</strong>님.<br/>%s</p>
                         <div style="margin:22px 0;padding:22px;border-radius:14px;background:#eef6f2;text-align:center;">
                           <span style="display:block;color:#61756b;font-size:12px;font-weight:700;margin-bottom:8px;">인증번호</span>
                           <strong style="font-size:34px;letter-spacing:.18em;color:#123f31;">%s</strong>
@@ -69,6 +98,6 @@ public class EmailVerificationMailService {
                   </div>
                 </body>
                 </html>
-                """.formatted(displayName, code);
+                """.formatted(title, displayName, instruction, code);
     }
 }
