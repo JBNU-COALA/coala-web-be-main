@@ -20,4 +20,15 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     @Modifying(clearAutomatically = true)
     @Query("UPDATE Post p SET p.viewCount = p.viewCount + 1 WHERE p.postId = :postId")
     void increaseViewCount(@Param("postId") Long postId);
+
+    @Query("""
+            SELECT CASE WHEN COUNT(p) > 0 THEN true ELSE false END
+            FROM Post p
+            WHERE p.status = :status
+              AND p.content LIKE CONCAT('%', :needle, '%')
+            """)
+    boolean existsByContentReference(
+            @Param("needle") String needle,
+            @Param("status") PostStatus status
+    );
 }

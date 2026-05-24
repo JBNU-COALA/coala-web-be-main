@@ -29,6 +29,9 @@ public class AttachmentCleanupScheduler {
 
     private void cleanup(AttachmentStatus status, LocalDateTime before, boolean markOrphaned) {
         for (Attachment attachment : attachmentService.findCleanupTargets(status, before)) {
+            if (markOrphaned && attachmentService.isReferencedByPublishedContent(attachment)) {
+                continue;
+            }
             attachmentService.deletePhysicalFile(attachment);
             if (markOrphaned) {
                 attachment.markOrphaned();

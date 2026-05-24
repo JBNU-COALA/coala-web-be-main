@@ -5,13 +5,17 @@ import com.example.coalawebbackend.api.info.dto.InfoArticleResponse;
 import com.example.coalawebbackend.api.notification.service.NotificationService;
 import com.example.coalawebbackend.common.enums.ErrorCode;
 import com.example.coalawebbackend.common.exception.CustomException;
+import com.example.coalawebbackend.domain.attachment.entity.Attachment;
+import com.example.coalawebbackend.domain.attachment.service.AttachmentService;
 import com.example.coalawebbackend.domain.info.entity.InfoArticle;
 import com.example.coalawebbackend.domain.info.entity.InfoCategory;
 import com.example.coalawebbackend.domain.info.repository.InfoArticleRepository;
 import com.example.coalawebbackend.domain.moderation.service.PermissionService;
 import com.example.coalawebbackend.domain.user.entity.User;
+import com.example.coalawebbackend.infra.storage.MarkdownArchiveService;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.Comparator;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -28,6 +32,8 @@ public class InfoArticleService {
     private final InfoArticleRepository infoArticleRepository;
     private final PermissionService permissionService;
     private final NotificationService notificationService;
+    private final AttachmentService attachmentService;
+    private final MarkdownArchiveService markdownArchiveService;
 
     public List<InfoArticleResponse> getArticles(String filter, String query) {
         InfoCategory category = InfoCategory.from(filter);
@@ -63,6 +69,13 @@ public class InfoArticleService {
                 .imageUrl(blankToEmpty(request.imageUrl()))
                 .build();
         InfoArticle savedArticle = infoArticleRepository.save(article);
+        attachmentService.syncInfoArticleAttachments(
+                actor,
+                savedArticle.getId(),
+                request.attachmentIds(),
+                request.thumbnailAttachmentId()
+        );
+        markdownArchiveService.saveInfoArticleSnapshot(savedArticle);
         notificationService.notifyInterestedInfo(actor, savedArticle);
         return toResponse(savedArticle);
     }
@@ -80,6 +93,15 @@ public class InfoArticleService {
                 LocalDate.parse(request.sourceDate()),
                 request.content(),
                 blankToEmpty(request.imageUrl()));
+        if (request.attachmentIds() != null || request.thumbnailAttachmentId() != null) {
+            attachmentService.syncInfoArticleAttachments(
+                    actor,
+                    article.getId(),
+                    request.attachmentIds(),
+                    request.thumbnailAttachmentId()
+            );
+        }
+        markdownArchiveService.saveInfoArticleSnapshot(article);
         return toResponse(article);
     }
 
@@ -112,6 +134,17 @@ public class InfoArticleService {
     }
 
     private InfoArticleResponse toResponse(InfoArticle article) {
+        List<Attachment> attachments = attachmentService.findActiveInfoArticleAttachments(article.getId()).stream()
+                .sorted(Comparator.comparingInt(Attachment::getDisplayOrder).thenComparing(Attachment::getId))
+                .toList();
+        List<Long> attachmentIds = attachments.stream()
+                .map(Attachment::getId)
+                .toList();
+        Long thumbnailAttachmentId = attachments.stream()
+                .filter(Attachment::isRepresentative)
+                .map(Attachment::getId)
+                .findFirst()
+                .orElse(null);
         return new InfoArticleResponse(
                 article.getId(),
                 article.getCategory().getApiValue(),
@@ -123,6 +156,8 @@ public class InfoArticleService {
                 article.getSourceDate().toString(),
                 article.getContent(),
                 article.getImageUrl(),
+                attachmentIds,
+                thumbnailAttachmentId,
                 article.getViewCount(),
                 article.getBookmarkCount(),
                 article.getCreatedAt() == null ? null : article.getCreatedAt().toString(),

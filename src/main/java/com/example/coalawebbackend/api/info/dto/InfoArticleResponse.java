@@ -1,5 +1,7 @@
 package com.example.coalawebbackend.api.info.dto;
 
+import java.util.List;
+
 public record InfoArticleResponse(
         Long id,
         String filter,
@@ -11,6 +13,8 @@ public record InfoArticleResponse(
         String sourceDate,
         String content,
         String imageUrl,
+        List<Long> attachmentIds,
+        Long thumbnailAttachmentId,
         long viewCount,
         long bookmarkCount,
         String createdAt,

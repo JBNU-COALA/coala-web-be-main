@@ -14,6 +14,7 @@ public class FileStorageProperties {
 
     private String rootPath = "/data/uploads";
     private long maxFileSize = 10 * 1024 * 1024L;
+    private boolean markdownArchiveEnabled = true;
     private List<String> allowedImageTypes = List.of("image/jpeg", "image/png", "image/webp", "image/gif");
     private List<String> allowedAttachmentTypes = List.of(
             "application/pdf",

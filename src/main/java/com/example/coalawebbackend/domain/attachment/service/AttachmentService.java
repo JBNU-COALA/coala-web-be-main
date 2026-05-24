@@ -11,6 +11,7 @@ import com.example.coalawebbackend.domain.attachment.entity.FileCategory;
 import com.example.coalawebbackend.domain.attachment.repository.AttachmentRepository;
 import com.example.coalawebbackend.domain.comment.entity.Comment;
 import com.example.coalawebbackend.domain.comment.repository.CommentRepository;
+import com.example.coalawebbackend.domain.info.repository.InfoArticleRepository;
 import com.example.coalawebbackend.domain.post.entity.Post;
 import com.example.coalawebbackend.domain.post.entity.PostStatus;
 import com.example.coalawebbackend.domain.post.repository.PostRepository;
@@ -35,6 +36,7 @@ public class AttachmentService {
     private final AttachmentRepository attachmentRepository;
     private final PostRepository postRepository;
     private final CommentRepository commentRepository;
+    private final InfoArticleRepository infoArticleRepository;
     private final FileStorage fileStorage;
 
     @Transactional
@@ -95,6 +97,52 @@ public class AttachmentService {
     }
 
     @Transactional
+    public Long syncInfoArticleAttachments(
+            User actor,
+            Long articleId,
+            List<Long> attachmentIds,
+            Long thumbnailAttachmentId
+    ) {
+        List<Long> normalizedIds = normalizeIds(attachmentIds);
+        if (thumbnailAttachmentId != null && !normalizedIds.contains(thumbnailAttachmentId)) {
+            throw new CustomException(ErrorCode.INVALID_ATTACHMENT);
+        }
+
+        List<Attachment> currentAttachments = attachmentRepository.findByTargetTypeAndTargetIdAndStatus(
+                AttachmentTargetType.INFO_ARTICLE,
+                articleId,
+                AttachmentStatus.ACTIVE
+        );
+        Map<Long, Attachment> requestedAttachments = loadRequestedAttachments(normalizedIds);
+
+        currentAttachments.stream()
+                .filter(attachment -> !normalizedIds.contains(attachment.getId()))
+                .forEach(attachment -> attachment.markDeleted(actor));
+
+        for (int i = 0; i < normalizedIds.size(); i++) {
+            Long attachmentId = normalizedIds.get(i);
+            Attachment attachment = requestedAttachments.get(attachmentId);
+            validateInfoArticleAttachable(actor, articleId, attachment);
+            attachment.activate(
+                    AttachmentTargetType.INFO_ARTICLE,
+                    articleId,
+                    i,
+                    thumbnailAttachmentId != null && thumbnailAttachmentId.equals(attachmentId)
+            );
+        }
+        return thumbnailAttachmentId;
+    }
+
+    @Transactional(readOnly = true)
+    public List<Attachment> findActiveInfoArticleAttachments(Long articleId) {
+        return attachmentRepository.findByTargetTypeAndTargetIdAndStatus(
+                AttachmentTargetType.INFO_ARTICLE,
+                articleId,
+                AttachmentStatus.ACTIVE
+        );
+    }
+
+    @Transactional
     public void markPostAttachmentsDeleted(Post post, User actor) {
         attachmentRepository.findByTargetTypeAndTargetIdAndStatus(
                         AttachmentTargetType.POST,
@@ -111,6 +159,16 @@ public class AttachmentService {
 
     public List<Attachment> findCleanupTargets(AttachmentStatus status, java.time.LocalDateTime before) {
         return attachmentRepository.findByStatusAndCreatedAtBefore(status, before);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean isReferencedByPublishedContent(Attachment attachment) {
+        if (attachment == null || attachment.getId() == null) {
+            return false;
+        }
+        String downloadPath = "/api/attachments/" + attachment.getId() + "/download";
+        return postRepository.existsByContentReference(downloadPath, PostStatus.ACTIVE)
+                || infoArticleRepository.existsByContentOrImageReference(downloadPath);
     }
 
     private AttachmentUploadResponse upload(User uploader, MultipartFile file, FileCategory category) {
@@ -161,6 +219,12 @@ public class AttachmentService {
         if (attachment.getTargetType() == AttachmentTargetType.USER) {
             return;
         }
+        if (attachment.getTargetType() == AttachmentTargetType.INFO_ARTICLE) {
+            if (!infoArticleRepository.existsById(attachment.getTargetId())) {
+                throw new CustomException(ErrorCode.ATTACHMENT_NOT_FOUND);
+            }
+            return;
+        }
         throw new CustomException(ErrorCode.ATTACHMENT_NOT_FOUND);
     }
 
@@ -194,6 +258,21 @@ public class AttachmentService {
         if (attachment.isActive()
                 && attachment.getTargetType() == AttachmentTargetType.POST
                 && post.getPostId().equals(attachment.getTargetId())) {
+            return;
+        }
+        throw new CustomException(ErrorCode.INVALID_ATTACHMENT);
+    }
+
+    private void validateInfoArticleAttachable(User actor, Long articleId, Attachment attachment) {
+        if (attachment.isActive()
+                && attachment.getTargetType() == AttachmentTargetType.INFO_ARTICLE
+                && articleId.equals(attachment.getTargetId())) {
+            return;
+        }
+        if (!attachment.isUploadedBy(actor)) {
+            throw new CustomException(ErrorCode.ACCESS_DENIED);
+        }
+        if (attachment.isTemp()) {
             return;
         }
         throw new CustomException(ErrorCode.INVALID_ATTACHMENT);

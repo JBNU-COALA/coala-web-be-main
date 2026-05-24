@@ -22,6 +22,7 @@ import com.example.coalawebbackend.domain.post.entity.PostStatus;
 import com.example.coalawebbackend.domain.post.repository.PostRepository;
 import com.example.coalawebbackend.domain.postlike.repository.PostLikeRepository;
 import com.example.coalawebbackend.domain.user.entity.User;
+import com.example.coalawebbackend.infra.storage.MarkdownArchiveService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -39,6 +40,7 @@ public class PostService {
     private final PermissionService permissionService;
     private final ContentSafetyService contentSafetyService;
     private final AttachmentService attachmentService;
+    private final MarkdownArchiveService markdownArchiveService;
 
     @Transactional
     public CreatePostResponse createPost(User user, Long boardId, PostRequest request) {
@@ -54,6 +56,7 @@ public class PostService {
                 request.getAttachmentIds(),
                 request.getThumbnailAttachmentId());
         savedPost.updateThumbnailAttachmentId(thumbnailAttachmentId);
+        markdownArchiveService.savePostSnapshot(savedPost);
         saveHistory(savedPost, user, ContentHistoryAction.CREATED, null);
         return CreatePostResponse.from(savedPost);
     }
@@ -100,6 +103,7 @@ public class PostService {
                     request.getThumbnailAttachmentId());
             post.updateThumbnailAttachmentId(thumbnailAttachmentId);
         }
+        markdownArchiveService.savePostSnapshot(post);
         return UpdatePostResponse.from(post);
     }
 

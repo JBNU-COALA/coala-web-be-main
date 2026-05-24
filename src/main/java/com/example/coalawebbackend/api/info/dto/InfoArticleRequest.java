@@ -2,6 +2,7 @@ package com.example.coalawebbackend.api.info.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import java.util.List;
 
 public record InfoArticleRequest(
         @NotBlank @Size(max = 20) String filter,
@@ -11,6 +12,8 @@ public record InfoArticleRequest(
         @NotBlank @Size(max = 50) String sourceName,
         @NotBlank @Size(max = 20) String sourceDate,
         @NotBlank @Size(max = 12000) String content,
-        @Size(max = 500) String imageUrl
+        @Size(max = 500) String imageUrl,
+        List<Long> attachmentIds,
+        Long thumbnailAttachmentId
 ) {
 }

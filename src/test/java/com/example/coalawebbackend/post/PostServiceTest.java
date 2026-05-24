@@ -30,6 +30,7 @@ import com.example.coalawebbackend.domain.post.repository.PostRepository;
 import com.example.coalawebbackend.domain.post.service.PostService;
 import com.example.coalawebbackend.domain.postlike.repository.PostLikeRepository;
 import com.example.coalawebbackend.domain.user.entity.User;
+import com.example.coalawebbackend.infra.storage.MarkdownArchiveService;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
@@ -68,6 +69,9 @@ class PostServiceTest {
 
     @Mock
     private AttachmentService attachmentService;
+
+    @Mock
+    private MarkdownArchiveService markdownArchiveService;
 
     @Test
     @DisplayName("게시글 생성 성공")
