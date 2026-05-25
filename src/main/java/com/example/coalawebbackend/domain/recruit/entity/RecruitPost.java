@@ -1,6 +1,7 @@
 package com.example.coalawebbackend.domain.recruit.entity;
 
 import com.example.coalawebbackend.common.entity.BaseEntity;
+import com.example.coalawebbackend.domain.user.entity.User;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
@@ -10,6 +11,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
@@ -68,6 +70,10 @@ public class RecruitPost extends BaseEntity {
 
     @Column(name = "host_role", nullable = false, length = 100)
     private String hostRole;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "author_id")
+    private User author;
 
     @Column(name = "trust_score", nullable = false)
     private double trustScore;

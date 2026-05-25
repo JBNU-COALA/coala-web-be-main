@@ -1,14 +1,18 @@
 package com.example.coalawebbackend.domain.info.entity;
 
 import com.example.coalawebbackend.common.entity.BaseEntity;
+import com.example.coalawebbackend.domain.user.entity.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
 import lombok.AccessLevel;
@@ -54,6 +58,10 @@ public class InfoArticle extends BaseEntity {
 
     @Column(name = "source_date", nullable = false)
     private LocalDate sourceDate;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "author_id")
+    private User author;
 
     @Column(name = "content", nullable = false, columnDefinition = "TEXT")
     private String content;

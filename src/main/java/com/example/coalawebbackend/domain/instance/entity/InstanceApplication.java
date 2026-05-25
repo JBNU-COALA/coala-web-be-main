@@ -1,14 +1,17 @@
 package com.example.coalawebbackend.domain.instance.entity;
 
 import com.example.coalawebbackend.common.entity.BaseEntity;
+import com.example.coalawebbackend.domain.user.entity.User;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -46,6 +49,10 @@ public class InstanceApplication extends BaseEntity {
 
     @Column(name = "key_email", nullable = false, length = 120)
     private String keyEmail;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private User user;
 
     @Column(name = "instance_type", nullable = false, length = 20)
     private String instanceType;

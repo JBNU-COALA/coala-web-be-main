@@ -7,4 +7,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface InstanceApplicationRepository extends JpaRepository<InstanceApplication, String> {
 
     List<InstanceApplication> findAllByOrderByRequestedAtDesc();
+
+    List<InstanceApplication> findByUser_IdOrderByRequestedAtDesc(Long userId);
 }

@@ -36,8 +36,10 @@ public class InstanceApplicationService {
     private final PermissionService permissionService;
 
     public List<InstanceApplicationResponse> getApplications(User actor) {
-        permissionService.assertModerator(actor);
-        return instanceApplicationRepository.findAllByOrderByRequestedAtDesc()
+        List<InstanceApplication> applications = permissionService.canModerate(actor)
+                ? instanceApplicationRepository.findAllByOrderByRequestedAtDesc()
+                : instanceApplicationRepository.findByUser_IdOrderByRequestedAtDesc(actor.getId());
+        return applications
                 .stream()
                 .map(this::toApplicationResponse)
                 .toList();
@@ -50,6 +52,7 @@ public class InstanceApplicationService {
                 .applicantName(defaultIfBlank(request.applicantName(), actor.getName()))
                 .studentId(defaultIfBlank(request.studentId(), actor.getStudentId()))
                 .keyEmail(defaultIfBlank(request.keyEmail(), actor.getEmail()))
+                .user(actor)
                 .instanceType(request.instanceType())
                 .purpose(request.purpose())
                 .duration(request.duration())

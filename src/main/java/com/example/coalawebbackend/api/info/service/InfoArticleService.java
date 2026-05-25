@@ -58,13 +58,15 @@ public class InfoArticleService {
     @Transactional
     public InfoArticleResponse createArticle(User actor, InfoArticleRequest request) {
         permissionService.assertModerator(actor);
+        String authorName = displayName(actor);
         InfoArticle article = InfoArticle.builder()
                 .category(InfoCategory.from(request.filter()))
                 .tag(request.tag())
-                .title(request.title())
+                .title(stripCategoryPrefix(request.title()))
                 .meta(request.meta())
-                .sourceName(request.sourceName())
+                .sourceName(authorName)
                 .sourceDate(LocalDate.parse(request.sourceDate()))
+                .author(actor)
                 .content(request.content())
                 .imageUrl(blankToEmpty(request.imageUrl()))
                 .build();
@@ -87,9 +89,9 @@ public class InfoArticleService {
         article.update(
                 InfoCategory.from(request.filter()),
                 request.tag(),
-                request.title(),
+                stripCategoryPrefix(request.title()),
                 request.meta(),
-                request.sourceName(),
+                displayName(article.getAuthor() == null ? actor : article.getAuthor()),
                 LocalDate.parse(request.sourceDate()),
                 request.content(),
                 blankToEmpty(request.imageUrl()));
@@ -133,6 +135,27 @@ public class InfoArticleService {
         return StringUtils.hasText(value) ? value.trim() : "";
     }
 
+    private String displayName(User user) {
+        if (user == null) {
+            return "코알라";
+        }
+        return StringUtils.hasText(user.getNickname()) ? user.getNickname().trim() : user.getName();
+    }
+
+    private String displayArticleAuthorName(InfoArticle article) {
+        if (article.getAuthor() != null) {
+            return displayName(article.getAuthor());
+        }
+        return StringUtils.hasText(article.getSourceName()) ? article.getSourceName().trim() : "코알라";
+    }
+
+    private String stripCategoryPrefix(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value.trim().replaceFirst("^\\[(소식|대회|연구실|자료)]\\s*", "");
+    }
+
     private InfoArticleResponse toResponse(InfoArticle article) {
         List<Attachment> attachments = attachmentService.findActiveInfoArticleAttachments(article.getId()).stream()
                 .sorted(Comparator.comparingInt(Attachment::getDisplayOrder).thenComparing(Attachment::getId))
@@ -145,14 +168,17 @@ public class InfoArticleService {
                 .map(Attachment::getId)
                 .findFirst()
                 .orElse(null);
+        String authorName = displayArticleAuthorName(article);
         return new InfoArticleResponse(
                 article.getId(),
                 article.getCategory().getApiValue(),
                 article.getTag(),
                 article.getTitle(),
                 article.getMeta(),
-                article.getSourceName() + " | " + article.getSourceDate().format(DISPLAY_DATE_FORMAT),
-                article.getSourceName(),
+                authorName + " | " + article.getSourceDate().format(DISPLAY_DATE_FORMAT),
+                authorName,
+                article.getAuthor() == null ? null : article.getAuthor().getId(),
+                authorName,
                 article.getSourceDate().toString(),
                 article.getContent(),
                 article.getImageUrl(),

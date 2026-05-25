@@ -1,5 +1,8 @@
 package com.example.coalawebbackend.api.services.controller;
 
+import com.example.coalawebbackend.api.services.dto.DomainApplicationRequest;
+import com.example.coalawebbackend.api.services.dto.DomainApplicationResponse;
+import com.example.coalawebbackend.api.services.dto.DomainApplicationUpdateRequest;
 import com.example.coalawebbackend.api.services.dto.InstanceApplicationRequest;
 import com.example.coalawebbackend.api.services.dto.InstanceApplicationResponse;
 import com.example.coalawebbackend.api.services.dto.InstanceApplicationUpdateRequest;
@@ -7,6 +10,7 @@ import com.example.coalawebbackend.api.services.dto.MemberServiceRequest;
 import com.example.coalawebbackend.api.services.dto.MemberServiceResponse;
 import com.example.coalawebbackend.api.services.dto.ServiceInquiryRequest;
 import com.example.coalawebbackend.api.services.dto.ServiceInquiryResponse;
+import com.example.coalawebbackend.api.services.service.DomainApplicationService;
 import com.example.coalawebbackend.api.services.service.InstanceApplicationService;
 import com.example.coalawebbackend.api.services.service.MemberServiceCatalogService;
 import com.example.coalawebbackend.domain.user.entity.User;
@@ -36,6 +40,7 @@ public class ServicesController {
 
     private final MemberServiceCatalogService memberServiceCatalogService;
     private final InstanceApplicationService instanceApplicationService;
+    private final DomainApplicationService domainApplicationService;
     private final UserService userService;
 
     @GetMapping
@@ -117,6 +122,34 @@ public class ServicesController {
             @Valid @RequestBody InstanceApplicationUpdateRequest request
     ) {
         return ResponseEntity.ok(instanceApplicationService.updateApplication(userService.findById(userId), applicationId, request));
+    }
+
+    @GetMapping("/domains/applications")
+    @Operation(summary = "도메인 신청 목록 조회", description = "도메인 신청 내역을 조회합니다. 관리자는 전체, 일반 사용자는 본인 신청만 조회합니다.")
+    public ResponseEntity<List<DomainApplicationResponse>> getDomainApplications(
+            @AuthenticationPrincipal String userId
+    ) {
+        return ResponseEntity.ok(domainApplicationService.getApplications(userService.findById(userId)));
+    }
+
+    @PostMapping("/domains/applications")
+    @Operation(summary = "도메인 신청 생성", description = "서비스 도메인 신청을 생성합니다.")
+    public ResponseEntity<DomainApplicationResponse> createDomainApplication(
+            @AuthenticationPrincipal String userId,
+            @Valid @RequestBody DomainApplicationRequest request
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(domainApplicationService.createApplication(userService.findById(userId), request));
+    }
+
+    @PatchMapping("/domains/applications/{applicationId}")
+    @Operation(summary = "도메인 신청 처리", description = "도메인 신청 승인/반려 상태를 변경합니다.")
+    public ResponseEntity<DomainApplicationResponse> updateDomainApplication(
+            @AuthenticationPrincipal String userId,
+            @PathVariable String applicationId,
+            @Valid @RequestBody DomainApplicationUpdateRequest request
+    ) {
+        return ResponseEntity.ok(domainApplicationService.updateApplication(userService.findById(userId), applicationId, request));
     }
 
     @GetMapping("/instances/inquiries")

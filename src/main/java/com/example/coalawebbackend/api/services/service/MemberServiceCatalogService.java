@@ -31,22 +31,22 @@ public class MemberServiceCatalogService {
 
     @Transactional
     public MemberServiceResponse createService(User actor, MemberServiceRequest request) {
-        permissionService.assertModerator(actor);
         String id = generateId(request.title());
         MemberService entity = MemberService.builder()
                 .id(id)
                 .title(request.title())
                 .category(request.category())
-                .owner("코알라")
+                .owner(defaultIfBlank(request.owner(), displayName(actor)))
+                .ownerUser(actor)
                 .summary(request.summary())
                 .url(normalizeUrl(request.url()))
                 .githubUrl(normalizeOptionalUrl(request.githubUrl()))
                 .imageUrl(blankToEmpty(request.imageUrl()))
                 .tags(request.tags())
-                .status("운영중")
+                .status(normalizeStatus(request.status()))
                 .audience("코알라 부원")
                 .visibility("Public")
-                .period("운영 중")
+                .period(periodForStatus(normalizeStatus(request.status())))
                 .description(request.summary())
                 .features(List.of("서비스 등록 요청", "운영 정보 검토", "서비스 카탈로그 노출"))
                 .stack(List.of("React", "Spring Boot", "PostgreSQL"))
@@ -62,23 +62,26 @@ public class MemberServiceCatalogService {
 
     @Transactional
     public MemberServiceResponse updateService(User actor, String id, MemberServiceRequest request) {
-        permissionService.assertModerator(actor);
         MemberService service = getServiceEntity(id);
+        assertCanManageService(actor, service);
         service.updateCatalog(
                 request.title(),
                 request.category(),
+                defaultIfBlank(request.owner(), service.getOwner()),
                 request.summary(),
                 normalizeUrl(request.url()),
                 request.githubUrl() == null ? service.getGithubUrl() : normalizeOptionalUrl(request.githubUrl()),
                 request.imageUrl() == null ? service.getImageUrl() : blankToEmpty(request.imageUrl()),
-                request.tags());
+                request.tags(),
+                normalizeStatus(defaultIfBlank(request.status(), service.getStatus())));
         return toResponse(service);
     }
 
     @Transactional
     public void retireService(User actor, String id) {
-        permissionService.assertModerator(actor);
-        getServiceEntity(id).retire();
+        MemberService service = getServiceEntity(id);
+        assertCanManageService(actor, service);
+        service.retire();
     }
 
     private MemberService getServiceEntity(String id) {
@@ -87,6 +90,7 @@ public class MemberServiceCatalogService {
     }
 
     private MemberServiceResponse toResponse(MemberService service) {
+        String status = normalizeStatus(service.getStatus());
         return new MemberServiceResponse(
                 service.getId(),
                 service.getTitle(),
@@ -97,10 +101,10 @@ public class MemberServiceCatalogService {
                 displayGithubUrl(service),
                 displayImageUrl(service.getImageUrl()),
                 service.getTags(),
-                service.getStatus(),
+                status,
                 service.getAudience(),
                 service.getVisibility(),
-                service.getPeriod(),
+                periodForStatus(status),
                 service.getDescription(),
                 service.getFeatures(),
                 service.getStack()
@@ -149,5 +153,46 @@ public class MemberServiceCatalogService {
 
     private String blankToEmpty(String value) {
         return value == null || value.isBlank() ? "" : value.trim();
+    }
+
+    private String defaultIfBlank(String value, String fallback) {
+        return value == null || value.isBlank() ? fallback : value.trim();
+    }
+
+    private String displayName(User user) {
+        return user.getNickname() == null || user.getNickname().isBlank() ? user.getName() : user.getNickname();
+    }
+
+    private void assertCanManageService(User actor, MemberService service) {
+        boolean isOwner = actor != null
+                && service.getOwnerUser() != null
+                && actor.getId().equals(service.getOwnerUser().getId());
+        if (!isOwner && !permissionService.canModerate(actor)) {
+            throw new CustomException(ErrorCode.ACCESS_DENIED);
+        }
+    }
+
+    private String normalizeStatus(String status) {
+        if (status == null || status.isBlank()) {
+            return "운영중";
+        }
+        String trimmed = status.trim();
+        if ("운영종료".equals(trimmed)) {
+            return "운영완료";
+        }
+        if ("운영완료".equals(trimmed) || "운영중지".equals(trimmed) || "운영중".equals(trimmed)) {
+            return trimmed;
+        }
+        return "운영중";
+    }
+
+    private String periodForStatus(String status) {
+        if ("운영중지".equals(status)) {
+            return "운영 중지";
+        }
+        if ("운영완료".equals(status)) {
+            return "운영 완료";
+        }
+        return "운영 중";
     }
 }

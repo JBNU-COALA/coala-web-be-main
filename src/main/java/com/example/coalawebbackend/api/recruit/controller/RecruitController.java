@@ -16,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -57,6 +58,16 @@ public class RecruitController {
             @AuthenticationPrincipal String userId
     ) {
         return ResponseEntity.status(HttpStatus.CREATED).body(recruitService.createRecruit(request, userId));
+    }
+
+    @DeleteMapping("/{recruitId}")
+    @Operation(summary = "모집 공고 삭제", description = "관리자가 모집 공고를 삭제합니다.")
+    public ResponseEntity<Void> deleteRecruit(
+            @PathVariable String recruitId,
+            @AuthenticationPrincipal String userId
+    ) {
+        recruitService.deleteRecruit(userService.findById(userId), recruitId);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/{recruitId}/comments")

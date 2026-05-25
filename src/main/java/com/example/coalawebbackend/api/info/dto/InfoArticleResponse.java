@@ -10,6 +10,8 @@ public record InfoArticleResponse(
         String meta,
         String source,
         String sourceName,
+        Long authorId,
+        String authorName,
         String sourceDate,
         String content,
         String imageUrl,

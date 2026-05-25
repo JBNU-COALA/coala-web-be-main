@@ -9,4 +9,6 @@ public interface RecruitPostRepository extends JpaRepository<RecruitPost, String
     List<RecruitPost> findAllByOrderByCreatedAtDesc();
 
     List<RecruitPost> findByCategoryOrderByCreatedAtDesc(String category);
+
+    List<RecruitPost> findByAuthor_IdOrderByCreatedAtDesc(Long authorId);
 }

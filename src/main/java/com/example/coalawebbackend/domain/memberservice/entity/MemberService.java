@@ -1,13 +1,16 @@
 package com.example.coalawebbackend.domain.memberservice.entity;
 
 import com.example.coalawebbackend.common.entity.BaseEntity;
+import com.example.coalawebbackend.domain.user.entity.User;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.util.ArrayList;
 import java.util.List;
@@ -43,6 +46,10 @@ public class MemberService extends BaseEntity {
 
     @Column(name = "owner_name", nullable = false, length = 50)
     private String owner;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "owner_user_id")
+    private User ownerUser;
 
     @Column(name = "summary", nullable = false, length = 255)
     private String summary;
@@ -89,15 +96,28 @@ public class MemberService extends BaseEntity {
     @Builder.Default
     private List<String> stack = new ArrayList<>();
 
-    public void updateCatalog(String title, String category, String summary, String url,
-                              String githubUrl, String imageUrl, List<String> tags) {
+    public void updateCatalog(String title, String category, String owner, String summary, String url,
+                              String githubUrl, String imageUrl, List<String> tags, String status) {
         this.title = title;
         this.category = category;
+        this.owner = owner;
         this.summary = summary;
         this.url = url;
         this.githubUrl = githubUrl;
         this.imageUrl = imageUrl;
         this.tags = new ArrayList<>(tags == null ? List.of() : tags);
+        this.status = status;
+        this.period = status;
+        if ("운영중지".equals(status)) {
+            this.visibility = "Private";
+            this.period = "운영 중지";
+        } else if ("운영완료".equals(status) || "운영종료".equals(status)) {
+            this.visibility = "Public";
+            this.period = "운영 완료";
+        } else {
+            this.visibility = "Public";
+            this.period = "운영 중";
+        }
     }
 
     public void retire() {

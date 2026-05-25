@@ -1,7 +1,9 @@
 package com.example.coalawebbackend.api.users.controller;
 
+import com.example.coalawebbackend.api.users.dto.UserActivityItemResponse;
 import com.example.coalawebbackend.api.users.dto.UserDirectoryResponse;
 import com.example.coalawebbackend.api.users.dto.UserProfileRequest;
+import com.example.coalawebbackend.api.users.service.UserActivityService;
 import com.example.coalawebbackend.api.users.service.UserDirectoryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -24,6 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class UsersController {
 
     private final UserDirectoryService userDirectoryService;
+    private final UserActivityService userActivityService;
 
     @GetMapping
     @Operation(summary = "유저 목록 조회", description = "가입된 사용자 계정을 기반으로 유저 목록을 조회합니다.")
@@ -38,6 +41,14 @@ public class UsersController {
             @AuthenticationPrincipal String currentUserId
     ) {
         return ResponseEntity.ok(userDirectoryService.getUser(userId, parseUserId(currentUserId)));
+    }
+
+    @GetMapping("/me/activity")
+    @Operation(summary = "내 작성/신청 활동 조회", description = "게시판, 정보공유, 모집, 인스턴스 신청, 도메인 신청을 한 번에 조회합니다.")
+    public ResponseEntity<List<UserActivityItemResponse>> getMyActivity(
+            @AuthenticationPrincipal String currentUserId
+    ) {
+        return ResponseEntity.ok(userActivityService.getMyActivities(parseUserId(currentUserId)));
     }
 
     @PatchMapping("/me/profile")

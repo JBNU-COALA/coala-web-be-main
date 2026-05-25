@@ -27,6 +27,7 @@ public enum ErrorCode implements BaseCode {
     BOARD_NOT_FOUND(HttpStatus.NOT_FOUND, "게시판을 찾을 수 없습니다."),
     BOARD_ACCESS_DENIED(HttpStatus.FORBIDDEN, "해당 게시판에 대한 권한이 없습니다."),
     BOARD_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 존재하는 게시판입니다."),
+    DOMAIN_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 신청된 도메인 주소입니다."),
 
     POST_NOT_FOUND(HttpStatus.NOT_FOUND, "게시글을 찾을 수 없습니다."),
     POST_NOT_EDITABLE(HttpStatus.CONFLICT, "수정할 수 없는 게시글 상태입니다."),

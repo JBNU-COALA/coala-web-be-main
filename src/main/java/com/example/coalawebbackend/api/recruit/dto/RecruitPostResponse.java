@@ -11,6 +11,8 @@ public record RecruitPostResponse(
         int currentMembers,
         int maxMembers,
         String host,
+        Long authorId,
+        String authorName,
         String hostInitials,
         String hostTone,
         String hostRole,

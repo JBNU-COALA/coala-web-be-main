@@ -88,6 +88,7 @@ public class RecruitService {
                 .hostInitials(displayName(user).substring(0, 1))
                 .hostTone("mint")
                 .hostRole("모집 작성자")
+                .author(user)
                 .trustScore(88.0)
                 .tags(normalizeTags(request.tags()))
                 .techStack(request.techStack())
@@ -206,6 +207,8 @@ public class RecruitService {
                 recruit.getCurrentMembers(),
                 recruit.getMaxMembers(),
                 recruit.getHost(),
+                recruit.getAuthor() == null ? null : recruit.getAuthor().getId(),
+                recruit.getAuthor() == null ? recruit.getHost() : displayName(recruit.getAuthor()),
                 recruit.getHostInitials(),
                 recruit.getHostTone(),
                 recruit.getHostRole(),
@@ -264,6 +267,12 @@ public class RecruitService {
 
     private String displayName(User user) {
         return StringUtils.hasText(user.getNickname()) ? user.getNickname() : user.getName();
+    }
+
+    @Transactional
+    public void deleteRecruit(User actor, String recruitId) {
+        permissionService.assertModerator(actor);
+        recruitPostRepository.delete(getRecruitEntity(recruitId));
     }
 
     private List<String> normalizeTags(List<String> tags) {

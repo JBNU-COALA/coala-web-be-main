@@ -13,6 +13,8 @@ public interface InfoArticleRepository extends JpaRepository<InfoArticle, Long> 
 
     List<InfoArticle> findByCategoryOrderBySourceDateDescIdDesc(InfoCategory category);
 
+    List<InfoArticle> findByAuthor_IdOrderBySourceDateDescIdDesc(Long authorId);
+
     @Query("""
             SELECT CASE WHEN COUNT(a) > 0 THEN true ELSE false END
             FROM InfoArticle a
