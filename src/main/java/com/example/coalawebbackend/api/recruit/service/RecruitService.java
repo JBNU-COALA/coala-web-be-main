@@ -81,7 +81,7 @@ public class RecruitService {
                 .title(request.title().trim())
                 .shortDesc(request.shortDesc().trim())
                 .category(request.category())
-                .status("open")
+                .status(normalizeStatus(request.status(), "open"))
                 .currentMembers(0)
                 .maxMembers(maxMembers)
                 .host(displayName(user))
@@ -109,6 +109,38 @@ public class RecruitService {
                     .build());
         }
         return toPostResponse(recruitPostRepository.save(recruit));
+    }
+
+    @Transactional
+    public RecruitPostResponse updateRecruit(User actor, String recruitId, RecruitPostRequest request) {
+        permissionService.assertModerator(actor);
+        RecruitPost recruit = getRecruitEntity(recruitId);
+        List<RecruitPostRequest.RecruitRoleRequest> roleRequests = request.roles();
+        int maxMembers = roleRequests.stream().mapToInt(role -> Math.max(role.max(), 1)).sum();
+        recruit.update(
+                request.title().trim(),
+                request.shortDesc().trim(),
+                request.category(),
+                normalizeStatus(request.status(), recruit.getStatus()),
+                maxMembers,
+                normalizeTags(request.tags()),
+                normalizeList(request.techStack()),
+                request.meetingType().trim(),
+                request.expectedDuration().trim(),
+                normalizeList(request.detailContent()),
+                normalizeList(request.processList())
+        );
+        recruit.clearRoles();
+        for (int i = 0; i < roleRequests.size(); i++) {
+            RecruitPostRequest.RecruitRoleRequest role = roleRequests.get(i);
+            recruit.addRole(RecruitRole.builder()
+                    .label(role.label().trim())
+                    .current(0)
+                    .max(Math.max(role.max(), 1))
+                    .sortOrder(i)
+                    .build());
+        }
+        return toPostResponse(recruit);
     }
 
     public List<RecruitCommentResponse> getComments(String recruitId) {
@@ -284,6 +316,27 @@ public class RecruitService {
                 .map(String::trim)
                 .map(tag -> tag.startsWith("#") ? tag : "#" + tag)
                 .toList();
+    }
+
+    private List<String> normalizeList(List<String> values) {
+        if (values == null) {
+            return List.of();
+        }
+        return values.stream()
+                .filter(StringUtils::hasText)
+                .map(String::trim)
+                .toList();
+    }
+
+    private String normalizeStatus(String status, String fallback) {
+        if (!StringUtils.hasText(status)) {
+            return fallback;
+        }
+        String normalized = status.trim().toLowerCase();
+        if (Set.of("open", "closing-soon", "closed").contains(normalized)) {
+            return normalized;
+        }
+        return fallback;
     }
 
     private String generateRecruitId(String title) {

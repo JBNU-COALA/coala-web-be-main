@@ -91,7 +91,7 @@ public class InfoArticleService {
                 request.tag(),
                 stripCategoryPrefix(request.title()),
                 request.meta(),
-                displayName(article.getAuthor() == null ? actor : article.getAuthor()),
+                article.getAuthor() == null ? defaultIfBlank(request.sourceName(), displayName(actor)) : displayName(article.getAuthor()),
                 LocalDate.parse(request.sourceDate()),
                 request.content(),
                 blankToEmpty(request.imageUrl()));
@@ -133,6 +133,10 @@ public class InfoArticleService {
 
     private String blankToEmpty(String value) {
         return StringUtils.hasText(value) ? value.trim() : "";
+    }
+
+    private String defaultIfBlank(String value, String fallback) {
+        return StringUtils.hasText(value) ? value.trim() : fallback;
     }
 
     private String displayName(User user) {

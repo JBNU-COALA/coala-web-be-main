@@ -13,6 +13,7 @@ public record RecruitPostRequest(
         @NotEmpty List<@NotBlank @Size(max = 80) String> techStack,
         @NotBlank @Size(max = 150) String meetingType,
         @NotBlank @Size(max = 80) String expectedDuration,
+        @Size(max = 30) String status,
         List<@NotBlank @Size(max = 50) String> tags,
         @NotEmpty List<@NotBlank @Size(max = 2000) String> detailContent,
         @NotEmpty List<@NotBlank @Size(max = 255) String> processList

@@ -124,6 +124,40 @@ public class RecruitPost extends BaseEntity {
         role.attachTo(this);
     }
 
+    public void clearRoles() {
+        roles.clear();
+    }
+
+    public void update(
+            String title,
+            String shortDesc,
+            String category,
+            String status,
+            int maxMembers,
+            List<String> tags,
+            List<String> techStack,
+            String meetingType,
+            String expectedDuration,
+            List<String> detailContent,
+            List<String> processList) {
+        this.title = title;
+        this.shortDesc = shortDesc;
+        this.category = category;
+        this.status = status;
+        this.maxMembers = Math.max(maxMembers, 1);
+        this.currentMembers = Math.min(this.currentMembers, this.maxMembers);
+        this.tags.clear();
+        this.tags.addAll(tags);
+        this.techStack.clear();
+        this.techStack.addAll(techStack);
+        this.meetingType = meetingType;
+        this.expectedDuration = expectedDuration;
+        this.detailContent.clear();
+        this.detailContent.addAll(detailContent);
+        this.processList.clear();
+        this.processList.addAll(processList);
+    }
+
     public void increaseViews() {
         this.views++;
     }
