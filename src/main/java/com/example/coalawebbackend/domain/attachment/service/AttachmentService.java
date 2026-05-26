@@ -166,9 +166,12 @@ public class AttachmentService {
         if (attachment == null || attachment.getId() == null) {
             return false;
         }
-        String downloadPath = "/api/attachments/" + attachment.getId() + "/download";
-        return postRepository.existsByContentReference(downloadPath, PostStatus.ACTIVE)
-                || infoArticleRepository.existsByContentOrImageReference(downloadPath);
+        String legacyDownloadPath = "/api/attachments/" + attachment.getId() + "/download";
+        String publicDownloadPath = "/media/attachments/" + attachment.getId() + "/download";
+        return postRepository.existsByContentReference(legacyDownloadPath, PostStatus.ACTIVE)
+                || postRepository.existsByContentReference(publicDownloadPath, PostStatus.ACTIVE)
+                || infoArticleRepository.existsByContentOrImageReference(legacyDownloadPath)
+                || infoArticleRepository.existsByContentOrImageReference(publicDownloadPath);
     }
 
     private AttachmentUploadResponse upload(User uploader, MultipartFile file, FileCategory category) {

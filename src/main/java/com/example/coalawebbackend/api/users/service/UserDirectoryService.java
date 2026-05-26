@@ -8,10 +8,13 @@ import com.example.coalawebbackend.domain.user.entity.AcademicStatus;
 import com.example.coalawebbackend.domain.user.entity.User;
 import com.example.coalawebbackend.domain.user.entity.UserRole;
 import com.example.coalawebbackend.domain.user.repository.UserRepository;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
@@ -23,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserDirectoryService {
 
     private static final List<String> AVATAR_TONES = List.of("mint", "sky", "amber", "slate", "rose", "sand");
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private final UserRepository userRepository;
 
@@ -46,6 +50,17 @@ public class UserDirectoryService {
         }
         User user = userRepository.findById(currentUserId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+        validateUniqueProfileFields(user, request);
+        user.updateAccountProfile(
+                normalizedOrCurrent(request.email(), user.getEmail()).toLowerCase(),
+                normalizedOrCurrent(request.name(), user.getName()),
+                normalizedOrCurrent(request.studentId(), user.getStudentId()),
+                normalizedOrCurrent(request.githubId(), user.getGithubId()),
+                request.lab() == null ? user.getLab() : normalizeBlank(request.lab()),
+                request.gender() == null ? user.getGender() : request.gender(),
+                request.academicStatus() == null ? user.getAcademicStatus() : request.academicStatus(),
+                request.linkedinUrl() == null ? user.getLinkedinUrl() : normalizeBlank(request.linkedinUrl())
+        );
         user.updateProfile(
                 request.bio(),
                 request.activityNote(),
@@ -83,9 +98,33 @@ public class UserDirectoryService {
                 0,
                 0,
                 0,
-                List.of(),
+                parseAwards(user.getProfileAwardNote()),
                 currentUserId != null && currentUserId.equals(user.getId())
         );
+    }
+
+    private void validateUniqueProfileFields(User user, UserProfileRequest request) {
+        String email = normalizeBlank(request.email());
+        if (email != null && !email.equalsIgnoreCase(user.getEmail()) && userRepository.existsByEmail(email.toLowerCase())) {
+            throw new CustomException(ErrorCode.DUPLICATE_EMAIL);
+        }
+
+        String studentId = normalizeBlank(request.studentId());
+        if (studentId != null && !studentId.equals(user.getStudentId()) && userRepository.existsByStudentId(studentId)) {
+            throw new CustomException(ErrorCode.DUPLICATE_STUDENT_ID);
+        }
+
+        String githubId = normalizeBlank(request.githubId());
+        if (githubId != null && !githubId.equalsIgnoreCase(user.getGithubId()) && userRepository.existsByGithubId(githubId)) {
+            throw new CustomException(ErrorCode.DUPLICATE_GITHUB_ID);
+        }
+
+        String linkedinUrl = normalizeBlank(request.linkedinUrl());
+        if (linkedinUrl != null
+                && !Objects.equals(linkedinUrl, user.getLinkedinUrl())
+                && userRepository.existsByLinkedinUrl(linkedinUrl)) {
+            throw new CustomException(ErrorCode.DUPLICATE_LINKEDIN_URL);
+        }
     }
 
     private String initialOf(String name) {
@@ -164,6 +203,56 @@ public class UserDirectoryService {
 
     private String blankToFallback(String value, String fallback) {
         return value == null || value.isBlank() ? fallback : value;
+    }
+
+    private String normalizeBlank(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isBlank() ? null : trimmed;
+    }
+
+    private String normalizedOrCurrent(String value, String current) {
+        String normalized = normalizeBlank(value);
+        return normalized == null ? current : normalized;
+    }
+
+    private List<UserDirectoryResponse.UserAwardResponse> parseAwards(String value) {
+        if (value == null || value.isBlank() || !value.trim().startsWith("[")) {
+            return List.of();
+        }
+
+        try {
+            List<StoredAward> awards = OBJECT_MAPPER.readValue(value, new TypeReference<>() {});
+            return awards.stream()
+                    .filter(award -> normalizeBlank(award.title()) != null)
+                    .map(award -> new UserDirectoryResponse.UserAwardResponse(
+                            blankToFallback(award.awardId(), "award-" + Math.abs(award.title().hashCode())),
+                            award.title(),
+                            blankToFallback(award.organizer(), ""),
+                            blankToFallback(award.rank(), ""),
+                            blankToFallback(award.awardedAt(), ""),
+                            blankToFallback(award.category(), "competition"),
+                            blankToFallback(award.description(), ""),
+                            normalizeBlank(award.credentialUrl())
+                    ))
+                    .toList();
+        } catch (Exception e) {
+            return List.of();
+        }
+    }
+
+    private record StoredAward(
+            String awardId,
+            String title,
+            String organizer,
+            String rank,
+            String awardedAt,
+            String category,
+            String description,
+            String credentialUrl
+    ) {
     }
 
     private List<String> splitSharedRepositories(String value) {

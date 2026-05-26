@@ -3,6 +3,7 @@ package com.example.coalawebbackend.comment;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.mock;
 import static org.mockito.BDDMockito.then;
@@ -80,6 +81,33 @@ class CommentServiceTest {
         assertThat(response).isNotNull();
         then(commentRepository).should(times(1)).save(any(Comment.class));
         then(notificationService).should(times(1)).notifyCommentCreated(post, comment);
+    }
+
+    @Test
+    @DisplayName("답글 생성 성공 - 부모 댓글 알림 호출")
+    void createReply_success_notifiesParentCommentOwner() {
+        // given
+        Long postId = 1L;
+        Long parentCommentId = 10L;
+        Post post = mock(Post.class);
+        User user = mock(User.class);
+        User parentUser = mock(User.class);
+        Comment parent = Comment.create(post, parentUser, "부모 댓글");
+        CreateCommentRequest request = new CreateCommentRequest("테스트 답글", parentCommentId);
+
+        given(post.getPostId()).willReturn(postId);
+        given(user.getId()).willReturn(2L);
+        given(user.getNickname()).willReturn(null);
+        given(user.getName()).willReturn("답글 작성자");
+        given(commentRepository.findById(parentCommentId)).willReturn(Optional.of(parent));
+        given(commentRepository.save(any(Comment.class))).willAnswer(invocation -> invocation.getArgument(0));
+
+        // when
+        CreateCommentResponse response = commentService.createComment(post, user, request);
+
+        // then
+        assertThat(response).isNotNull();
+        then(notificationService).should(times(1)).notifyReplyCreated(eq(post), eq(parent), any(Comment.class));
     }
 
     @Test

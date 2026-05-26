@@ -83,7 +83,7 @@ public class InstanceApplicationService {
 
     public List<ServiceInquiryResponse> getInquiries(User actor) {
         permissionService.assertModerator(actor);
-        return serviceInquiryRepository.findAllByOrderByCreatedDateDesc()
+        return serviceInquiryRepository.findByIdStartingWithOrderByCreatedDateDesc("inq-")
                 .stream()
                 .map(this::toInquiryResponse)
                 .toList();

@@ -48,12 +48,13 @@ public class SecurityConfig {
                                     "/api/boards/*",
                                     "/api/boards/*/posts",
                                     "/api/boards/*/posts/*",
-                                    "/api/users",
                                     "/api/users/*",
                                     "/api/services",
                                     "/api/services/*",
                                     "/api/github/public-activity",
                                     "/api/site/about",
+                                    "/api/archive",
+                                    "/api/archive/*",
                                     "/api/info",
                                     "/api/info/*",
                                     "/api/recruits",
@@ -62,7 +63,8 @@ public class SecurityConfig {
                                     "/api/posts/*/comments",
                                     "/api/posts/*/comments/*/replies",
                                     "/api/posts/*/resources",
-                                    "/api/attachments/*/download"
+                                    "/api/attachments/*/download",
+                                    "/media/attachments/*/download"
                             ).permitAll()
                             .requestMatchers(
                                     "/api/auth/signup",

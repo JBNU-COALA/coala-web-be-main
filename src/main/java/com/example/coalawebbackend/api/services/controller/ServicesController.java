@@ -152,6 +152,24 @@ public class ServicesController {
         return ResponseEntity.ok(domainApplicationService.updateApplication(userService.findById(userId), applicationId, request));
     }
 
+    @GetMapping("/domains/inquiries")
+    @Operation(summary = "도메인 문의 목록 조회", description = "도메인 신청 관련 문의사항을 조회합니다.")
+    public ResponseEntity<List<ServiceInquiryResponse>> getDomainInquiries(
+            @AuthenticationPrincipal String userId
+    ) {
+        return ResponseEntity.ok(domainApplicationService.getInquiries(userService.findById(userId)));
+    }
+
+    @PostMapping("/domains/inquiries")
+    @Operation(summary = "도메인 문의 등록", description = "도메인 신청 관련 문의사항을 등록합니다.")
+    public ResponseEntity<ServiceInquiryResponse> createDomainInquiry(
+            @AuthenticationPrincipal String userId,
+            @Valid @RequestBody ServiceInquiryRequest request
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(domainApplicationService.createInquiry(userService.findById(userId), request));
+    }
+
     @GetMapping("/instances/inquiries")
     @Operation(summary = "인스턴스 문의 목록 조회", description = "인스턴스 관련 문의사항을 조회합니다.")
     public ResponseEntity<List<ServiceInquiryResponse>> getInstanceInquiries(

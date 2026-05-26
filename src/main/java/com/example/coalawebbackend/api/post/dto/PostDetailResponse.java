@@ -27,6 +27,7 @@ public class PostDetailResponse {
     private int viewCount;
     private long commentCount;
     private long likeCount;
+    private boolean likedByMe;
     private Long thumbnailAttachmentId;
 
     private LocalDateTime createdAt;
@@ -37,6 +38,10 @@ public class PostDetailResponse {
     }
 
     public static PostDetailResponse from(Post post, long commentCount, long likeCount) {
+        return from(post, commentCount, likeCount, false);
+    }
+
+    public static PostDetailResponse from(Post post, long commentCount, long likeCount, boolean likedByMe) {
         String nickname = post.getUser().getNickname();
         String displayName = (nickname != null && !nickname.isBlank())
                 ? nickname
@@ -56,6 +61,7 @@ public class PostDetailResponse {
                 .viewCount(post.getViewCount())
                 .commentCount(commentCount)
                 .likeCount(likeCount)
+                .likedByMe(likedByMe)
                 .thumbnailAttachmentId(post.getThumbnailAttachmentId())
                 .createdAt(post.getCreatedAt())
                 .updatedAt(post.getUpdatedAt())

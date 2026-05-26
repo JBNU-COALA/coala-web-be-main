@@ -7,4 +7,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface ServiceInquiryRepository extends JpaRepository<ServiceInquiry, String> {
 
     List<ServiceInquiry> findAllByOrderByCreatedDateDesc();
+
+    List<ServiceInquiry> findByIdStartingWithOrderByCreatedDateDesc(String prefix);
 }

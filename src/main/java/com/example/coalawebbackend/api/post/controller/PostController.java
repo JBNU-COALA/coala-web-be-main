@@ -47,21 +47,23 @@ public class PostController implements PostControllerSpec {
 
     @GetMapping("/boards/{boardId}/posts")
     public ResponseEntity<List<PostListResponse>> getPosts(
-            @PathVariable Long boardId
+            @PathVariable Long boardId,
+            @AuthenticationPrincipal String userId
     ) {
         return ResponseEntity
                 .status(HttpStatus.OK)
-                .body(postFacade.getPosts(boardId));
+                .body(postFacade.getPosts(boardId, userId));
     }
 
     @GetMapping("/boards/{boardId}/posts/{postId}")
     public ResponseEntity<PostDetailResponse> getPostDetail(
             @PathVariable Long boardId,
-            @PathVariable Long postId
+            @PathVariable Long postId,
+            @AuthenticationPrincipal String userId
     ) {
         return ResponseEntity
                 .status(HttpStatus.OK)
-                .body(postFacade.getPostDetail(boardId, postId));
+                .body(postFacade.getPostDetail(boardId, postId, userId));
     }
 
     @PatchMapping("/posts/{postId}")

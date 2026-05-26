@@ -12,4 +12,6 @@ public interface RecruitApplicationRepository extends JpaRepository<RecruitAppli
     Optional<RecruitApplication> findFirstByRecruitPost_IdAndUser_IdOrderBySubmittedAtDesc(String recruitId, Long userId);
 
     List<RecruitApplication> findByRecruitPost_IdOrderBySubmittedAtDesc(String recruitId);
+
+    void deleteByRecruitPost_Id(String recruitId);
 }

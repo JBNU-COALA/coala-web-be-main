@@ -9,6 +9,8 @@ import com.example.coalawebbackend.domain.notification.entity.Notification;
 import com.example.coalawebbackend.domain.notification.entity.NotificationType;
 import com.example.coalawebbackend.domain.notification.repository.NotificationRepository;
 import com.example.coalawebbackend.domain.post.entity.Post;
+import com.example.coalawebbackend.domain.recruit.entity.RecruitPost;
+import com.example.coalawebbackend.domain.recruit.repository.RecruitBookmarkRepository;
 import com.example.coalawebbackend.domain.user.entity.User;
 import com.example.coalawebbackend.domain.user.repository.UserRepository;
 import java.util.HashSet;
@@ -25,6 +27,7 @@ public class NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
+    private final RecruitBookmarkRepository recruitBookmarkRepository;
 
     public List<NotificationResponse> getNotifications(User user) {
         return notificationRepository.findTop30ByUserOrderByCreatedAtDesc(user)
@@ -66,17 +69,37 @@ public class NotificationService {
                 notifiedUserIds,
                 "새 댓글",
                 "%s님이 \"%s\" 글에 댓글을 남겼습니다.".formatted(actorName, post.getTitle()),
-                linkUrl);
+                linkUrl,
+                NotificationType.COMMENT);
+    }
 
-        if (comment.getParent() != null) {
-            notifyCommentRecipient(
-                    comment.getParent().getUser(),
-                    actor,
-                    notifiedUserIds,
-                    "새 답글",
-                    "%s님이 회원님의 댓글에 답글을 남겼습니다.".formatted(actorName),
-                    linkUrl);
-        }
+    @Transactional
+    public void notifyReplyCreated(Post post, Comment parent, Comment reply) {
+        User actor = reply.getUser();
+        Set<Long> notifiedUserIds = new HashSet<>();
+        String actorName = displayName(actor);
+        String linkUrl = "/community/board/%d/posts/%d#comment-%d".formatted(
+                post.getBoard().getBoardId(),
+                post.getPostId(),
+                parent.getId());
+
+        notifyCommentRecipient(
+                parent.getUser(),
+                actor,
+                notifiedUserIds,
+                "새 답글",
+                "%s님이 회원님의 댓글에 답글을 남겼습니다.".formatted(actorName),
+                linkUrl,
+                NotificationType.REPLY);
+
+        notifyCommentRecipient(
+                post.getUser(),
+                actor,
+                notifiedUserIds,
+                "새 댓글",
+                "%s님이 \"%s\" 글에 답글을 남겼습니다.".formatted(actorName, post.getTitle()),
+                linkUrl,
+                NotificationType.COMMENT);
     }
 
     @Transactional
@@ -93,13 +116,55 @@ public class NotificationService {
                         linkUrl)));
     }
 
+    @Transactional
+    public void notifyRecruitClosingSoon(RecruitPost recruit) {
+        recruitBookmarkRepository.findByRecruitPost_Id(recruit.getId())
+                .forEach(bookmark -> notifyRecruitClosingSoon(bookmark.getUser(), recruit));
+    }
+
+    @Transactional
+    public void notifyRecruitClosingSoon(User user, RecruitPost recruit) {
+        if (user == null || recruit == null) {
+            return;
+        }
+        String title = "모집 마감 임박";
+        String linkUrl = "/community/recruit/notices/" + recruit.getId();
+        if (notificationRepository.existsByUserAndTypeAndTitleAndLinkUrl(user, NotificationType.RECRUIT, title, linkUrl)) {
+            return;
+        }
+        notificationRepository.save(Notification.create(
+                user,
+                NotificationType.RECRUIT,
+                title,
+                "\"%s\" 모집이 곧 마감됩니다.".formatted(recruit.getTitle()),
+                linkUrl));
+    }
+
+    @Transactional
+    public void notifyRecruitCommentCreated(RecruitPost recruit, User actor) {
+        if (recruit == null || recruit.getAuthor() == null || actor == null) {
+            return;
+        }
+        if (recruit.getAuthor().getId().equals(actor.getId())) {
+            return;
+        }
+        String actorName = displayName(actor);
+        notificationRepository.save(Notification.create(
+                recruit.getAuthor(),
+                NotificationType.RECRUIT,
+                "모집 문의",
+                "%s님이 \"%s\" 모집에 문의를 남겼습니다.".formatted(actorName, recruit.getTitle()),
+                "/community/recruit/notices/" + recruit.getId()));
+    }
+
     private void notifyCommentRecipient(
             User recipient,
             User actor,
             Set<Long> notifiedUserIds,
             String title,
             String message,
-            String linkUrl) {
+            String linkUrl,
+            NotificationType type) {
         if (recipient == null || actor == null || recipient.getId().equals(actor.getId())) {
             return;
         }
@@ -108,7 +173,7 @@ public class NotificationService {
         }
         notificationRepository.save(Notification.create(
                 recipient,
-                NotificationType.COMMENT,
+                type,
                 title,
                 message,
                 linkUrl));

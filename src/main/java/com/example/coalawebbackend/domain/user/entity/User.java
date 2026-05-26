@@ -151,12 +151,37 @@ public class User extends BaseEntity {
         this.profileSharedRepositories = normalizeBlank(sharedRepositories);
     }
 
+    public void updateAccountProfile(
+            String email,
+            String name,
+            String studentId,
+            String githubId,
+            String lab,
+            Gender gender,
+            AcademicStatus academicStatus,
+            String linkedinUrl
+    ) {
+        this.email = requireValue(email, this.email);
+        this.name = requireValue(name, this.name);
+        this.studentId = requireValue(studentId, this.studentId);
+        this.githubId = requireValue(githubId, this.githubId);
+        this.lab = normalizeBlank(lab);
+        this.gender = gender == null ? this.gender : gender;
+        this.academicStatus = academicStatus == null ? this.academicStatus : academicStatus;
+        this.linkedinUrl = normalizeBlank(linkedinUrl);
+    }
+
     private String normalizeBlank(String value) {
         if (value == null) {
             return null;
         }
         String trimmed = value.trim();
         return trimmed.isBlank() ? null : trimmed;
+    }
+
+    private String requireValue(String value, String fallback) {
+        String normalized = normalizeBlank(value);
+        return normalized == null ? fallback : normalized;
     }
 
     public void syncSeedAccount(

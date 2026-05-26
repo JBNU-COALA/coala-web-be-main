@@ -57,7 +57,11 @@ public class CommentService {
                 : Comment.createReply(post, user, parent, request.getContent());
         Comment savedComment = commentRepository.save(comment);
         saveHistory(savedComment, user, ContentHistoryAction.CREATED, null);
-        notificationService.notifyCommentCreated(post, savedComment);
+        if (parent == null) {
+            notificationService.notifyCommentCreated(post, savedComment);
+        } else {
+            notificationService.notifyReplyCreated(post, parent, savedComment);
+        }
         return CreateCommentResponse.from(savedComment);
     }
 

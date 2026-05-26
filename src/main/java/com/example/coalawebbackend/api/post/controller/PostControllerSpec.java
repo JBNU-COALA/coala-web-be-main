@@ -51,7 +51,9 @@ public interface PostControllerSpec {
     })
     ResponseEntity<List<PostListResponse>> getPosts(
             @Parameter(description = "게시판 ID", required = true)
-            @PathVariable Long boardId
+            @PathVariable Long boardId,
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal String userId
     );
 
 
@@ -66,7 +68,9 @@ public interface PostControllerSpec {
             @Parameter(description = "게시판 ID", required = true)
             @PathVariable Long boardId,
             @Parameter(description = "게시글 ID", required = true)
-            @PathVariable Long postId
+            @PathVariable Long postId,
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal String userId
     );
 
 

@@ -39,11 +39,23 @@ public class PostFacade {
     }
 
     @Transactional(readOnly = true)
-    public List<PostListResponse> getPosts(Long boardId)
-    {return postService.getPosts(boardId);}
+    public List<PostListResponse> getPosts(Long boardId, String currentUserId) {
+        return postService.getPosts(boardId, parseUserId(currentUserId));
+    }
 
     @Transactional
-    public PostDetailResponse getPostDetail(Long boardId, Long postId) {
-        return postService.getPostDetail(boardId, postId);
+    public PostDetailResponse getPostDetail(Long boardId, Long postId, String currentUserId) {
+        return postService.getPostDetail(boardId, postId, parseUserId(currentUserId));
+    }
+
+    private Long parseUserId(String userId) {
+        if (userId == null || userId.isBlank()) {
+            return null;
+        }
+        try {
+            return Long.parseLong(userId);
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 }

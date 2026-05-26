@@ -17,7 +17,7 @@ public record AttachmentUploadResponse(
                 attachment.getOriginalName(),
                 attachment.getContentType(),
                 attachment.getFileSize(),
-                "/api/attachments/" + attachment.getId() + "/download",
+                "/media/attachments/" + attachment.getId() + "/download",
                 attachment.getStatus().name()
         );
     }

@@ -1,5 +1,6 @@
 package com.example.coalawebbackend.api.recruit.service;
 
+import com.example.coalawebbackend.api.notification.service.NotificationService;
 import com.example.coalawebbackend.api.recruit.dto.RecruitApplicationRequest;
 import com.example.coalawebbackend.api.recruit.dto.RecruitApplicationResponse;
 import com.example.coalawebbackend.api.recruit.dto.RecruitCommentRequest;
@@ -11,10 +12,12 @@ import com.example.coalawebbackend.common.enums.ErrorCode;
 import com.example.coalawebbackend.common.exception.CustomException;
 import com.example.coalawebbackend.domain.moderation.service.PermissionService;
 import com.example.coalawebbackend.domain.recruit.entity.RecruitApplication;
+import com.example.coalawebbackend.domain.recruit.entity.RecruitBookmark;
 import com.example.coalawebbackend.domain.recruit.entity.RecruitComment;
 import com.example.coalawebbackend.domain.recruit.entity.RecruitPost;
 import com.example.coalawebbackend.domain.recruit.entity.RecruitRole;
 import com.example.coalawebbackend.domain.recruit.repository.RecruitApplicationRepository;
+import com.example.coalawebbackend.domain.recruit.repository.RecruitBookmarkRepository;
 import com.example.coalawebbackend.domain.recruit.repository.RecruitCommentRepository;
 import com.example.coalawebbackend.domain.recruit.repository.RecruitPostRepository;
 import com.example.coalawebbackend.domain.user.entity.User;
@@ -41,8 +44,10 @@ public class RecruitService {
     private final RecruitPostRepository recruitPostRepository;
     private final RecruitCommentRepository recruitCommentRepository;
     private final RecruitApplicationRepository recruitApplicationRepository;
+    private final RecruitBookmarkRepository recruitBookmarkRepository;
     private final UserService userService;
     private final PermissionService permissionService;
+    private final NotificationService notificationService;
 
     public List<RecruitPostResponse> getRecruits(String category, String status, String query, String sort) {
         List<RecruitPost> recruits = StringUtils.hasText(category) && !"all".equalsIgnoreCase(category)
@@ -113,8 +118,9 @@ public class RecruitService {
 
     @Transactional
     public RecruitPostResponse updateRecruit(User actor, String recruitId, RecruitPostRequest request) {
-        permissionService.assertModerator(actor);
         RecruitPost recruit = getRecruitEntity(recruitId);
+        assertCanManageRecruit(actor, recruit);
+        String previousStatus = recruit.getStatus();
         List<RecruitPostRequest.RecruitRoleRequest> roleRequests = request.roles();
         int maxMembers = roleRequests.stream().mapToInt(role -> Math.max(role.max(), 1)).sum();
         recruit.update(
@@ -140,6 +146,10 @@ public class RecruitService {
                     .sortOrder(i)
                     .build());
         }
+        if (!"closing-soon".equalsIgnoreCase(previousStatus)
+                && "closing-soon".equalsIgnoreCase(recruit.getStatus())) {
+            notificationService.notifyRecruitClosingSoon(recruit);
+        }
         return toPostResponse(recruit);
     }
 
@@ -162,7 +172,9 @@ public class RecruitService {
                 .authorTone("mint")
                 .content(request.content())
                 .build();
-        return toCommentResponse(recruitCommentRepository.save(comment));
+        RecruitComment savedComment = recruitCommentRepository.save(comment);
+        notificationService.notifyRecruitCommentCreated(recruit, user);
+        return toCommentResponse(savedComment);
     }
 
     @Transactional
@@ -207,9 +219,21 @@ public class RecruitService {
     }
 
     @Transactional
-    public RecruitPostResponse bookmark(String recruitId) {
+    public RecruitPostResponse bookmark(String recruitId, String userId) {
         RecruitPost recruit = getRecruitEntity(recruitId);
-        recruit.increaseBookmarks();
+        User user = userService.findById(userId);
+        recruitBookmarkRepository.findByRecruitPost_IdAndUser_Id(recruitId, user.getId())
+                .orElseGet(() -> {
+                    RecruitBookmark bookmark = RecruitBookmark.builder()
+                            .recruitPost(recruit)
+                            .user(user)
+                            .build();
+                    recruit.increaseBookmarks();
+                    return recruitBookmarkRepository.save(bookmark);
+                });
+        if ("closing-soon".equalsIgnoreCase(recruit.getStatus())) {
+            notificationService.notifyRecruitClosingSoon(user, recruit);
+        }
         return toPostResponse(recruit);
     }
 
@@ -303,8 +327,21 @@ public class RecruitService {
 
     @Transactional
     public void deleteRecruit(User actor, String recruitId) {
-        permissionService.assertModerator(actor);
-        recruitPostRepository.delete(getRecruitEntity(recruitId));
+        RecruitPost recruit = getRecruitEntity(recruitId);
+        assertCanManageRecruit(actor, recruit);
+        recruitApplicationRepository.deleteByRecruitPost_Id(recruitId);
+        recruitCommentRepository.deleteByRecruitPost_Id(recruitId);
+        recruitBookmarkRepository.deleteByRecruitPost_Id(recruitId);
+        recruitPostRepository.delete(recruit);
+    }
+
+    private void assertCanManageRecruit(User actor, RecruitPost recruit) {
+        boolean isAuthor = actor != null
+                && recruit.getAuthor() != null
+                && actor.getId().equals(recruit.getAuthor().getId());
+        if (!isAuthor && !permissionService.canModerate(actor)) {
+            throw new CustomException(ErrorCode.ACCESS_DENIED);
+        }
     }
 
     private List<String> normalizeTags(List<String> tags) {

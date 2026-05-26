@@ -63,14 +63,24 @@ public class PostService {
 
     @Transactional(readOnly = true)
     public List<PostListResponse> getPosts(Long boardId) {
+        return getPosts(boardId, null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<PostListResponse> getPosts(Long boardId, Long currentUserId) {
         return postRepository.findByBoardBoardIdAndStatusOrderByCreatedAtDesc(boardId, PostStatus.ACTIVE)
                 .stream()
-                .map(this::toPostListResponse)
+                .map(post -> toPostListResponse(post, currentUserId))
                 .toList();
     }
 
     @Transactional
     public PostDetailResponse getPostDetail(Long boardId, Long postId) {
+        return getPostDetail(boardId, postId, null);
+    }
+
+    @Transactional
+    public PostDetailResponse getPostDetail(Long boardId, Long postId, Long currentUserId) {
         Post post = postRepository.findByPostIdAndStatus(postId, PostStatus.ACTIVE)
                 .orElseThrow(() -> new CustomException(ErrorCode.POST_NOT_FOUND));
         if (!post.getBoard().getBoardId().equals(boardId)) {
@@ -79,7 +89,7 @@ public class PostService {
         postRepository.increaseViewCount(postId);
         Post updatedPost = postRepository.findById(postId)
                 .orElseThrow(() -> new CustomException(ErrorCode.POST_NOT_FOUND));
-        return toPostDetailResponse(updatedPost);
+        return toPostDetailResponse(updatedPost, currentUserId);
     }
 
     @Transactional
@@ -127,18 +137,25 @@ public class PostService {
                 .orElseThrow(() -> new CustomException(ErrorCode.POST_NOT_FOUND));
     }
 
-    private PostListResponse toPostListResponse(Post post) {
+    private PostListResponse toPostListResponse(Post post, Long currentUserId) {
         return PostListResponse.from(
                 post,
                 commentRepository.countByPost_PostId(post.getPostId()),
-                postLikeRepository.countByPost(post));
+                postLikeRepository.countByPost(post),
+                isLikedBy(post, currentUserId));
     }
 
-    private PostDetailResponse toPostDetailResponse(Post post) {
+    private PostDetailResponse toPostDetailResponse(Post post, Long currentUserId) {
         return PostDetailResponse.from(
                 post,
                 commentRepository.countByPost_PostId(post.getPostId()),
-                postLikeRepository.countByPost(post));
+                postLikeRepository.countByPost(post),
+                isLikedBy(post, currentUserId));
+    }
+
+    private boolean isLikedBy(Post post, Long currentUserId) {
+        return currentUserId != null
+                && postLikeRepository.existsByUser_IdAndPost_PostId(currentUserId, post.getPostId());
     }
 
     private void saveHistory(Post post, User actor, ContentHistoryAction action, String reason) {

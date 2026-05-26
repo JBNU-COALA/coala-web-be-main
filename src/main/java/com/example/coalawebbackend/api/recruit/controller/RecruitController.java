@@ -126,7 +126,10 @@ public class RecruitController {
 
     @PostMapping("/{recruitId}/bookmarks")
     @Operation(summary = "모집 관심 저장", description = "모집 공고 관심 수를 증가시킵니다.")
-    public ResponseEntity<RecruitPostResponse> bookmark(@PathVariable String recruitId) {
-        return ResponseEntity.ok(recruitService.bookmark(recruitId));
+    public ResponseEntity<RecruitPostResponse> bookmark(
+            @PathVariable String recruitId,
+            @AuthenticationPrincipal String userId
+    ) {
+        return ResponseEntity.ok(recruitService.bookmark(recruitId, userId));
     }
 }
