@@ -157,6 +157,39 @@ public class AttachmentService {
     }
 
     @Transactional
+    public void syncArchiveAttachment(User actor, Long archiveItemId, Long attachmentId) {
+        List<Attachment> currentAttachments = attachmentRepository.findByTargetTypeAndTargetIdAndStatus(
+                AttachmentTargetType.ARCHIVE,
+                archiveItemId,
+                AttachmentStatus.ACTIVE
+        );
+
+        if (attachmentId == null) {
+            currentAttachments.forEach(attachment -> attachment.markDeleted(actor));
+            return;
+        }
+
+        Attachment attachment = loadRequestedAttachments(List.of(attachmentId)).get(attachmentId);
+        validateArchiveAttachable(actor, archiveItemId, attachment);
+
+        currentAttachments.stream()
+                .filter(current -> !attachmentId.equals(current.getId()))
+                .forEach(current -> current.markDeleted(actor));
+
+        attachment.activate(AttachmentTargetType.ARCHIVE, archiveItemId, 0, true);
+    }
+
+    @Transactional
+    public void markArchiveAttachmentsDeleted(Long archiveItemId, User actor) {
+        attachmentRepository.findByTargetTypeAndTargetIdAndStatus(
+                        AttachmentTargetType.ARCHIVE,
+                        archiveItemId,
+                        AttachmentStatus.ACTIVE
+                )
+                .forEach(attachment -> attachment.markDeleted(actor));
+    }
+
+    @Transactional
     public void deletePhysicalFile(Attachment attachment) {
         fileStorage.delete(attachment.getStoragePath());
     }
@@ -236,6 +269,9 @@ public class AttachmentService {
             }
             return;
         }
+        if (attachment.getTargetType() == AttachmentTargetType.ARCHIVE) {
+            return;
+        }
         throw new CustomException(ErrorCode.ATTACHMENT_NOT_FOUND);
     }
 
@@ -278,6 +314,21 @@ public class AttachmentService {
         if (attachment.isActive()
                 && attachment.getTargetType() == AttachmentTargetType.INFO_ARTICLE
                 && articleId.equals(attachment.getTargetId())) {
+            return;
+        }
+        if (!attachment.isUploadedBy(actor)) {
+            throw new CustomException(ErrorCode.ACCESS_DENIED);
+        }
+        if (attachment.isTemp()) {
+            return;
+        }
+        throw new CustomException(ErrorCode.INVALID_ATTACHMENT);
+    }
+
+    private void validateArchiveAttachable(User actor, Long archiveItemId, Attachment attachment) {
+        if (attachment.isActive()
+                && attachment.getTargetType() == AttachmentTargetType.ARCHIVE
+                && archiveItemId.equals(attachment.getTargetId())) {
             return;
         }
         if (!attachment.isUploadedBy(actor)) {
