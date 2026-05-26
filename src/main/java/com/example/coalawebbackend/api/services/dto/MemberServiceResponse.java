@@ -11,6 +11,7 @@ public record MemberServiceResponse(
         String url,
         String githubUrl,
         String imageUrl,
+        List<String> additionalImageUrls,
         List<String> tags,
         String status,
         String audience,
@@ -18,6 +19,7 @@ public record MemberServiceResponse(
         String period,
         String description,
         List<String> features,
-        List<String> stack
+        List<String> stack,
+        boolean canEdit
 ) {
 }

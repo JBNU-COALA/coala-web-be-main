@@ -22,10 +22,10 @@ public class MemberServiceCatalogService {
     private final MemberServiceRepository memberServiceRepository;
     private final PermissionService permissionService;
 
-    public List<MemberServiceResponse> getServices() {
+    public List<MemberServiceResponse> getServices(User actor) {
         return memberServiceRepository.findAllByOrderByTitleAsc()
                 .stream()
-                .map(this::toResponse)
+                .map(service -> toResponse(service, actor))
                 .toList();
     }
 
@@ -42,6 +42,7 @@ public class MemberServiceCatalogService {
                 .url(normalizeUrl(request.url()))
                 .githubUrl(normalizeOptionalUrl(request.githubUrl()))
                 .imageUrl(blankToEmpty(request.imageUrl()))
+                .additionalImageUrls(normalizeImageUrls(request.additionalImageUrls()))
                 .tags(request.tags())
                 .status(normalizeStatus(request.status()))
                 .audience("코알라 부원")
@@ -51,12 +52,12 @@ public class MemberServiceCatalogService {
                 .features(List.of("서비스 등록 요청", "운영 정보 검토", "서비스 카탈로그 노출"))
                 .stack(List.of("React", "Spring Boot", "PostgreSQL"))
                 .build();
-        return toResponse(memberServiceRepository.save(entity));
+        return toResponse(memberServiceRepository.save(entity), actor);
     }
 
-    public MemberServiceResponse getService(String id) {
+    public MemberServiceResponse getService(String id, User actor) {
         return memberServiceRepository.findById(id)
-                .map(this::toResponse)
+                .map(service -> toResponse(service, actor))
                 .orElseThrow(() -> new CustomException(ErrorCode.RESOURCE_NOT_FOUND));
     }
 
@@ -72,9 +73,12 @@ public class MemberServiceCatalogService {
                 normalizeUrl(request.url()),
                 request.githubUrl() == null ? service.getGithubUrl() : normalizeOptionalUrl(request.githubUrl()),
                 request.imageUrl() == null ? service.getImageUrl() : blankToEmpty(request.imageUrl()),
+                request.additionalImageUrls() == null
+                        ? service.getAdditionalImageUrls()
+                        : normalizeImageUrls(request.additionalImageUrls()),
                 request.tags(),
                 normalizeStatus(defaultIfBlank(request.status(), service.getStatus())));
-        return toResponse(service);
+        return toResponse(service, actor);
     }
 
     @Transactional
@@ -89,7 +93,7 @@ public class MemberServiceCatalogService {
                 .orElseThrow(() -> new CustomException(ErrorCode.RESOURCE_NOT_FOUND));
     }
 
-    private MemberServiceResponse toResponse(MemberService service) {
+    private MemberServiceResponse toResponse(MemberService service, User actor) {
         String status = normalizeStatus(service.getStatus());
         return new MemberServiceResponse(
                 service.getId(),
@@ -100,6 +104,11 @@ public class MemberServiceCatalogService {
                 service.getUrl(),
                 displayGithubUrl(service),
                 displayImageUrl(service.getImageUrl()),
+                service.getAdditionalImageUrls().stream()
+                        .map(this::displayImageUrl)
+                        .filter(value -> !value.isBlank())
+                        .limit(5)
+                        .toList(),
                 service.getTags(),
                 status,
                 service.getAudience(),
@@ -107,7 +116,8 @@ public class MemberServiceCatalogService {
                 periodForStatus(status),
                 service.getDescription(),
                 service.getFeatures(),
-                service.getStack()
+                service.getStack(),
+                canManageService(actor, service)
         );
     }
 
@@ -151,6 +161,18 @@ public class MemberServiceCatalogService {
         return imageUrl;
     }
 
+    private List<String> normalizeImageUrls(List<String> imageUrls) {
+        if (imageUrls == null || imageUrls.isEmpty()) {
+            return List.of();
+        }
+        return imageUrls.stream()
+                .map(this::blankToEmpty)
+                .filter(value -> !value.isBlank())
+                .distinct()
+                .limit(5)
+                .toList();
+    }
+
     private String blankToEmpty(String value) {
         return value == null || value.isBlank() ? "" : value.trim();
     }
@@ -164,12 +186,16 @@ public class MemberServiceCatalogService {
     }
 
     private void assertCanManageService(User actor, MemberService service) {
+        if (!canManageService(actor, service)) {
+            throw new CustomException(ErrorCode.ACCESS_DENIED);
+        }
+    }
+
+    private boolean canManageService(User actor, MemberService service) {
         boolean isOwner = actor != null
                 && service.getOwnerUser() != null
                 && actor.getId().equals(service.getOwnerUser().getId());
-        if (!isOwner && !permissionService.canModerate(actor)) {
-            throw new CustomException(ErrorCode.ACCESS_DENIED);
-        }
+        return isOwner || permissionService.canModerate(actor);
     }
 
     private String normalizeStatus(String status) {

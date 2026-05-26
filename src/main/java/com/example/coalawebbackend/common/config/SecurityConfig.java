@@ -48,7 +48,6 @@ public class SecurityConfig {
                                     "/api/boards/*",
                                     "/api/boards/*/posts",
                                     "/api/boards/*/posts/*",
-                                    "/api/users/*",
                                     "/api/services",
                                     "/api/services/*",
                                     "/api/github/public-activity",

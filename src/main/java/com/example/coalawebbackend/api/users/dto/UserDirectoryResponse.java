@@ -25,6 +25,7 @@ public record UserDirectoryResponse(
         Integer githubCommits,
         Integer totalPoints,
         List<UserAwardResponse> awards,
+        UserCustomizationResponse customization,
         boolean isMe
 ) {
 
@@ -47,6 +48,20 @@ public record UserDirectoryResponse(
             String category,
             String description,
             String credentialUrl
+    ) {
+    }
+
+    public record UserCustomizationResponse(
+            String avatarTone,
+            String headline,
+            String profileImageUrl,
+            List<UserProfileLinkResponse> links
+    ) {
+    }
+
+    public record UserProfileLinkResponse(
+            String label,
+            String url
     ) {
     }
 }

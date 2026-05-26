@@ -11,6 +11,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OrderColumn;
 import jakarta.persistence.Table;
 import java.util.ArrayList;
 import java.util.List;
@@ -64,6 +65,13 @@ public class MemberService extends BaseEntity {
     private String imageUrl;
 
     @ElementCollection
+    @CollectionTable(name = "member_service_additional_images", joinColumns = @JoinColumn(name = "service_id"))
+    @OrderColumn(name = "display_order")
+    @Column(name = "image_url", nullable = false, length = 500)
+    @Builder.Default
+    private List<String> additionalImageUrls = new ArrayList<>();
+
+    @ElementCollection
     @CollectionTable(name = "member_service_tags", joinColumns = @JoinColumn(name = "service_id"))
     @Column(name = "tag", nullable = false, length = 50)
     @Builder.Default
@@ -97,7 +105,8 @@ public class MemberService extends BaseEntity {
     private List<String> stack = new ArrayList<>();
 
     public void updateCatalog(String title, String category, String owner, String summary, String url,
-                              String githubUrl, String imageUrl, List<String> tags, String status) {
+                              String githubUrl, String imageUrl, List<String> additionalImageUrls,
+                              List<String> tags, String status) {
         this.title = title;
         this.category = category;
         this.owner = owner;
@@ -105,6 +114,7 @@ public class MemberService extends BaseEntity {
         this.url = url;
         this.githubUrl = githubUrl;
         this.imageUrl = imageUrl;
+        this.additionalImageUrls = new ArrayList<>(additionalImageUrls == null ? List.of() : additionalImageUrls);
         this.tags = new ArrayList<>(tags == null ? List.of() : tags);
         this.status = status;
         this.period = status;

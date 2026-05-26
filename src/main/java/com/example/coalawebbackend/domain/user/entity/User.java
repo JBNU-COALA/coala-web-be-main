@@ -86,6 +86,9 @@ public class User extends BaseEntity {
     @Column(name = "profile_shared_repositories", length = 1000)
     private String profileSharedRepositories;
 
+    @Column(name = "profile_customization", columnDefinition = "TEXT")
+    private String profileCustomization;
+
     // 선택: 생년월일 (LocalDate 로 정규화)
     @Column(name = "birth_date")
     private LocalDate birthDate;
@@ -144,11 +147,18 @@ public class User extends BaseEntity {
         this.password = encodedPassword;
     }
 
-    public void updateProfile(String bio, String activityNote, String awardNote, String sharedRepositories) {
+    public void updateProfile(
+            String bio,
+            String activityNote,
+            String awardNote,
+            String sharedRepositories,
+            String customization
+    ) {
         this.profileBio = normalizeBlank(bio);
         this.profileActivityNote = normalizeBlank(activityNote);
         this.profileAwardNote = normalizeBlank(awardNote);
         this.profileSharedRepositories = normalizeBlank(sharedRepositories);
+        this.profileCustomization = normalizeBlank(customization);
     }
 
     public void updateAccountProfile(

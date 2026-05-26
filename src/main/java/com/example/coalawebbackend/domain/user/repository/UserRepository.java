@@ -20,4 +20,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
     boolean existsByGithubId(String githubId);
 
     boolean existsByLinkedinUrl(String linkedinUrl);
+
+    boolean existsByProfileCustomizationContaining(String needle);
 }

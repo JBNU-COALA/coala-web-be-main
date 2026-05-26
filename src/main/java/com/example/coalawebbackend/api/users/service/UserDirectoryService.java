@@ -65,7 +65,8 @@ public class UserDirectoryService {
                 request.bio(),
                 request.activityNote(),
                 request.awardNote(),
-                normalizeSharedRepositories(request.sharedRepositories()));
+                normalizeSharedRepositories(request.sharedRepositories()),
+                normalizeCustomization(request.customization()));
         return toResponse(user, currentUserId);
     }
 
@@ -75,18 +76,20 @@ public class UserDirectoryService {
         String academicStatus = formatAcademicStatus(user.getAcademicStatus());
         String grade = formatGrade(user);
         String lab = blankToFallback(user.getLab(), user.getDepartment());
+        UserDirectoryResponse.UserCustomizationResponse customization = parseCustomization(user.getProfileCustomization(), user);
+        String headline = blankToFallback(customization.headline(), formatFocus(user.getDepartment(), lab, academicStatus));
 
         return new UserDirectoryResponse(
                 user.getId(),
                 user.getName(),
                 initialOf(user.getName()),
-                toneFor(user.getId()),
+                customization.avatarTone(),
                 formatRole(user),
                 grade,
                 lab,
                 githubHandle,
                 "https://github.com/" + githubHandle,
-                formatFocus(user.getDepartment(), lab, academicStatus),
+                headline,
                 blankToFallback(user.getProfileBio(), ""),
                 blankToFallback(user.getProfileActivityNote(), ""),
                 blankToFallback(user.getProfileAwardNote(), ""),
@@ -99,6 +102,7 @@ public class UserDirectoryService {
                 0,
                 0,
                 parseAwards(user.getProfileAwardNote()),
+                customization,
                 currentUserId != null && currentUserId.equals(user.getId())
         );
     }
@@ -272,5 +276,89 @@ public class UserDirectoryService {
             return null;
         }
         return String.join("\n", new LinkedHashSet<>(splitSharedRepositories(value)));
+    }
+
+    private UserDirectoryResponse.UserCustomizationResponse parseCustomization(String value, User user) {
+        String fallbackTone = toneFor(user.getId());
+        if (value == null || value.isBlank()) {
+            return new UserDirectoryResponse.UserCustomizationResponse(fallbackTone, "", "", List.of());
+        }
+
+        try {
+            StoredCustomization stored = OBJECT_MAPPER.readValue(value, StoredCustomization.class);
+            return new UserDirectoryResponse.UserCustomizationResponse(
+                    normalizeAvatarTone(stored.avatarTone(), fallbackTone),
+                    blankToFallback(stored.headline(), ""),
+                    blankToFallback(stored.profileImageUrl(), ""),
+                    normalizeProfileLinks(stored.links())
+            );
+        } catch (Exception e) {
+            return new UserDirectoryResponse.UserCustomizationResponse(fallbackTone, "", "", List.of());
+        }
+    }
+
+    private String normalizeCustomization(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+
+        try {
+            StoredCustomization stored = OBJECT_MAPPER.readValue(value, StoredCustomization.class);
+            StoredCustomization normalized = new StoredCustomization(
+                    normalizeAvatarTone(stored.avatarTone(), "mint"),
+                    truncate(blankToFallback(stored.headline(), ""), 120),
+                    truncate(blankToFallback(stored.profileImageUrl(), ""), 500),
+                    normalizeProfileLinks(stored.links()).stream()
+                            .map(link -> new StoredProfileLink(link.label(), link.url()))
+                            .toList()
+            );
+            return OBJECT_MAPPER.writeValueAsString(normalized);
+        } catch (Exception e) {
+            throw new CustomException(ErrorCode.VALIDATION_FAILED);
+        }
+    }
+
+    private String normalizeAvatarTone(String value, String fallback) {
+        if (value == null || value.isBlank()) {
+            return fallback;
+        }
+        String normalized = value.trim().toLowerCase();
+        return AVATAR_TONES.contains(normalized) ? normalized : fallback;
+    }
+
+    private List<UserDirectoryResponse.UserProfileLinkResponse> normalizeProfileLinks(List<StoredProfileLink> links) {
+        if (links == null || links.isEmpty()) {
+            return List.of();
+        }
+        return links.stream()
+                .map(link -> new UserDirectoryResponse.UserProfileLinkResponse(
+                        truncate(blankToFallback(link.label(), ""), 40),
+                        truncate(blankToFallback(link.url(), ""), 500)
+                ))
+                .filter(link -> !link.label().isBlank() && isHttpUrl(link.url()))
+                .limit(5)
+                .toList();
+    }
+
+    private boolean isHttpUrl(String value) {
+        return value.startsWith("http://") || value.startsWith("https://");
+    }
+
+    private String truncate(String value, int maxLength) {
+        return value.length() <= maxLength ? value : value.substring(0, maxLength);
+    }
+
+    private record StoredCustomization(
+            String avatarTone,
+            String headline,
+            String profileImageUrl,
+            List<StoredProfileLink> links
+    ) {
+    }
+
+    private record StoredProfileLink(
+            String label,
+            String url
+    ) {
     }
 }

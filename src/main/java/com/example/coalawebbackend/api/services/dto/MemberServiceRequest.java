@@ -13,6 +13,7 @@ public record MemberServiceRequest(
         @NotBlank @Size(max = 500) String url,
         @Size(max = 500) String githubUrl,
         @Size(max = 500) String imageUrl,
+        @Size(max = 5) List<@Size(max = 500) String> additionalImageUrls,
         @NotEmpty List<@NotBlank @Size(max = 50) String> tags,
         @Size(max = 20) String status
 ) {

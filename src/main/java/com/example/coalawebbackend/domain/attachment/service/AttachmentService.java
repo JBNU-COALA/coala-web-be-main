@@ -12,10 +12,12 @@ import com.example.coalawebbackend.domain.attachment.repository.AttachmentReposi
 import com.example.coalawebbackend.domain.comment.entity.Comment;
 import com.example.coalawebbackend.domain.comment.repository.CommentRepository;
 import com.example.coalawebbackend.domain.info.repository.InfoArticleRepository;
+import com.example.coalawebbackend.domain.memberservice.repository.MemberServiceRepository;
 import com.example.coalawebbackend.domain.post.entity.Post;
 import com.example.coalawebbackend.domain.post.entity.PostStatus;
 import com.example.coalawebbackend.domain.post.repository.PostRepository;
 import com.example.coalawebbackend.domain.user.entity.User;
+import com.example.coalawebbackend.domain.user.repository.UserRepository;
 import com.example.coalawebbackend.infra.storage.FileStorage;
 import com.example.coalawebbackend.infra.storage.StoredFile;
 import java.util.ArrayList;
@@ -37,6 +39,8 @@ public class AttachmentService {
     private final PostRepository postRepository;
     private final CommentRepository commentRepository;
     private final InfoArticleRepository infoArticleRepository;
+    private final MemberServiceRepository memberServiceRepository;
+    private final UserRepository userRepository;
     private final FileStorage fileStorage;
 
     @Transactional
@@ -171,7 +175,11 @@ public class AttachmentService {
         return postRepository.existsByContentReference(legacyDownloadPath, PostStatus.ACTIVE)
                 || postRepository.existsByContentReference(publicDownloadPath, PostStatus.ACTIVE)
                 || infoArticleRepository.existsByContentOrImageReference(legacyDownloadPath)
-                || infoArticleRepository.existsByContentOrImageReference(publicDownloadPath);
+                || infoArticleRepository.existsByContentOrImageReference(publicDownloadPath)
+                || memberServiceRepository.existsByImageReference(legacyDownloadPath)
+                || memberServiceRepository.existsByImageReference(publicDownloadPath)
+                || userRepository.existsByProfileCustomizationContaining(legacyDownloadPath)
+                || userRepository.existsByProfileCustomizationContaining(publicDownloadPath);
     }
 
     private AttachmentUploadResponse upload(User uploader, MultipartFile file, FileCategory category) {

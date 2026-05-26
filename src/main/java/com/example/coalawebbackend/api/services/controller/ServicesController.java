@@ -45,14 +45,19 @@ public class ServicesController {
 
     @GetMapping
     @Operation(summary = "유저 서비스 목록 조회", description = "유저 서비스 카탈로그를 조회합니다.")
-    public ResponseEntity<List<MemberServiceResponse>> getServices() {
-        return ResponseEntity.ok(memberServiceCatalogService.getServices());
+    public ResponseEntity<List<MemberServiceResponse>> getServices(
+            @AuthenticationPrincipal String userId
+    ) {
+        return ResponseEntity.ok(memberServiceCatalogService.getServices(findActorOrNull(userId)));
     }
 
     @GetMapping("/{serviceId}")
     @Operation(summary = "유저 서비스 상세 조회", description = "서비스 ID로 서비스 상세 정보를 조회합니다.")
-    public ResponseEntity<MemberServiceResponse> getService(@PathVariable String serviceId) {
-        return ResponseEntity.ok(memberServiceCatalogService.getService(serviceId));
+    public ResponseEntity<MemberServiceResponse> getService(
+            @AuthenticationPrincipal String userId,
+            @PathVariable String serviceId
+    ) {
+        return ResponseEntity.ok(memberServiceCatalogService.getService(serviceId, findActorOrNull(userId)));
     }
 
     @PostMapping
@@ -185,5 +190,17 @@ public class ServicesController {
     ) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(instanceApplicationService.createInquiry(request));
+    }
+
+    private User findActorOrNull(String userId) {
+        if (userId == null || userId.isBlank()) {
+            return null;
+        }
+        try {
+            Long.parseLong(userId);
+        } catch (NumberFormatException e) {
+            return null;
+        }
+        return userService.findById(userId);
     }
 }
