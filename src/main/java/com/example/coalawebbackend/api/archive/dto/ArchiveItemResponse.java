@@ -1,6 +1,7 @@
 package com.example.coalawebbackend.api.archive.dto;
 
 import com.example.coalawebbackend.domain.archive.entity.ArchiveItem;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
@@ -10,6 +11,9 @@ public record ArchiveItemResponse(
         String category,
         String title,
         String summary,
+        String labName,
+        LocalDate eventDate,
+        String materialType,
         String content,
         String sourceUrl,
         String repositoryUrl,
@@ -25,6 +29,9 @@ public record ArchiveItemResponse(
                 item.getCategory().getApiValue(),
                 item.getTitle(),
                 item.getSummary(),
+                blankToEmpty(item.getLabName()),
+                item.getEventDate(),
+                blankToEmpty(item.getMaterialType()),
                 item.getContent(),
                 blankToEmpty(item.getSourceUrl()),
                 blankToEmpty(item.getRepositoryUrl()),

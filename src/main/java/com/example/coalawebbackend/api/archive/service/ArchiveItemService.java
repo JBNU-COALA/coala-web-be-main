@@ -52,12 +52,17 @@ public class ArchiveItemService {
 
     @Transactional
     public ArchiveItemResponse createItem(User actor, ArchiveItemRequest request) {
+        ArchiveCategory category = ArchiveCategory.from(request.category());
+        validateCategoryMetadata(category, request);
         ArchiveItem item = ArchiveItem.create(
-                ArchiveCategory.from(request.category()),
+                category,
                 actor,
                 displayName(actor),
                 request.title().trim(),
                 request.summary().trim(),
+                normalizeOptionalText(request.labName()),
+                request.eventDate(),
+                normalizeMaterialType(category, request.materialType()),
                 request.content().trim(),
                 normalizeOptionalUrl(request.sourceUrl(), true),
                 normalizeOptionalUrl(request.repositoryUrl(), false),
@@ -72,10 +77,15 @@ public class ArchiveItemService {
     public ArchiveItemResponse updateItem(User actor, Long itemId, ArchiveItemRequest request) {
         ArchiveItem item = getItemEntity(itemId);
         assertCanManage(actor, item);
+        ArchiveCategory category = ArchiveCategory.from(request.category());
+        validateCategoryMetadata(category, request);
         item.update(
-                ArchiveCategory.from(request.category()),
+                category,
                 request.title().trim(),
                 request.summary().trim(),
+                normalizeOptionalText(request.labName()),
+                request.eventDate(),
+                normalizeMaterialType(category, request.materialType()),
                 request.content().trim(),
                 normalizeOptionalUrl(request.sourceUrl(), true),
                 normalizeOptionalUrl(request.repositoryUrl(), false),
@@ -111,6 +121,9 @@ public class ArchiveItemService {
         String searchable = String.join(" ",
                 item.getTitle(),
                 item.getSummary(),
+                item.getLabName(),
+                item.getEventDate() == null ? "" : item.getEventDate().toString(),
+                item.getMaterialType(),
                 item.getContent(),
                 item.getOwnerName(),
                 item.getTags());
@@ -119,6 +132,31 @@ public class ArchiveItemService {
 
     private String normalizeQuery(String query) {
         return query == null ? "" : query.trim().toLowerCase();
+    }
+
+    private void validateCategoryMetadata(ArchiveCategory category, ArchiveItemRequest request) {
+        if (category != ArchiveCategory.LABS) {
+            return;
+        }
+        if (!StringUtils.hasText(request.labName()) || request.eventDate() == null) {
+            throw new CustomException(ErrorCode.VALIDATION_FAILED);
+        }
+    }
+
+    private String normalizeOptionalText(String value) {
+        return StringUtils.hasText(value) ? value.trim() : "";
+    }
+
+    private String normalizeMaterialType(ArchiveCategory category, String value) {
+        String fallback = category == ArchiveCategory.LABS ? "SEMINAR" : "SKILL";
+        if (!StringUtils.hasText(value)) {
+            return fallback;
+        }
+        String normalized = value.trim().toUpperCase();
+        return switch (normalized) {
+            case "SEMINAR", "PAPER", "OTHER", "SKILL", "AGENT" -> normalized;
+            default -> fallback;
+        };
     }
 
     private String normalizeOptionalUrl(String url, boolean allowAttachmentPath) {

@@ -14,6 +14,7 @@ import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import java.time.LocalDate;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -57,6 +58,15 @@ public class ArchiveItem extends BaseEntity {
     @Column(name = "summary", nullable = false, length = 500)
     private String summary;
 
+    @Column(name = "lab_name", nullable = false, length = 120)
+    private String labName;
+
+    @Column(name = "event_date")
+    private LocalDate eventDate;
+
+    @Column(name = "material_type", nullable = false, length = 30)
+    private String materialType;
+
     @Column(name = "content", nullable = false, columnDefinition = "TEXT")
     private String content;
 
@@ -75,6 +85,9 @@ public class ArchiveItem extends BaseEntity {
             String ownerName,
             String title,
             String summary,
+            String labName,
+            LocalDate eventDate,
+            String materialType,
             String content,
             String sourceUrl,
             String repositoryUrl,
@@ -86,6 +99,9 @@ public class ArchiveItem extends BaseEntity {
                 .ownerName(ownerName)
                 .title(title)
                 .summary(summary)
+                .labName(labName)
+                .eventDate(eventDate)
+                .materialType(materialType)
                 .content(content)
                 .sourceUrl(sourceUrl)
                 .repositoryUrl(repositoryUrl)
@@ -97,6 +113,9 @@ public class ArchiveItem extends BaseEntity {
             ArchiveCategory category,
             String title,
             String summary,
+            String labName,
+            LocalDate eventDate,
+            String materialType,
             String content,
             String sourceUrl,
             String repositoryUrl,
@@ -105,6 +124,9 @@ public class ArchiveItem extends BaseEntity {
         this.category = category;
         this.title = title;
         this.summary = summary;
+        this.labName = labName;
+        this.eventDate = eventDate;
+        this.materialType = materialType;
         this.content = content;
         this.sourceUrl = sourceUrl;
         this.repositoryUrl = repositoryUrl;
