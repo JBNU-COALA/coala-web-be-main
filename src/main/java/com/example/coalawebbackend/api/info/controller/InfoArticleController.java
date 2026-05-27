@@ -3,6 +3,7 @@ package com.example.coalawebbackend.api.info.controller;
 import com.example.coalawebbackend.api.info.dto.InfoArticleRequest;
 import com.example.coalawebbackend.api.info.dto.InfoArticleResponse;
 import com.example.coalawebbackend.api.info.service.InfoArticleService;
+import com.example.coalawebbackend.api.infolike.dto.InfoArticleLikeResponse;
 import com.example.coalawebbackend.domain.user.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -34,16 +35,20 @@ public class InfoArticleController {
     @GetMapping
     @Operation(summary = "정보공유 목록 조회", description = "소식/대회/연구실/자료 글을 조회합니다.")
     public ResponseEntity<List<InfoArticleResponse>> getArticles(
+            @AuthenticationPrincipal String userId,
             @RequestParam(required = false) String filter,
             @RequestParam(required = false) String query
     ) {
-        return ResponseEntity.ok(infoArticleService.getArticles(filter, query));
+        return ResponseEntity.ok(infoArticleService.getArticles(filter, query, userId));
     }
 
     @GetMapping("/{articleId}")
     @Operation(summary = "정보공유 상세 조회", description = "정보공유 글 상세를 조회하고 조회수를 증가시킵니다.")
-    public ResponseEntity<InfoArticleResponse> getArticle(@PathVariable Long articleId) {
-        return ResponseEntity.ok(infoArticleService.getArticle(articleId));
+    public ResponseEntity<InfoArticleResponse> getArticle(
+            @AuthenticationPrincipal String userId,
+            @PathVariable Long articleId
+    ) {
+        return ResponseEntity.ok(infoArticleService.getArticle(articleId, userId));
     }
 
     @PostMapping
@@ -80,5 +85,14 @@ public class InfoArticleController {
     @Operation(summary = "정보공유 저장", description = "정보공유 글의 저장 수를 증가시킵니다.")
     public ResponseEntity<InfoArticleResponse> bookmarkArticle(@PathVariable Long articleId) {
         return ResponseEntity.ok(infoArticleService.bookmarkArticle(articleId));
+    }
+
+    @PostMapping("/{articleId}/likes")
+    @Operation(summary = "정보공유 좋아요", description = "정보공유 글 좋아요를 토글합니다.")
+    public ResponseEntity<InfoArticleLikeResponse> toggleArticleLike(
+            @AuthenticationPrincipal String userId,
+            @PathVariable Long articleId
+    ) {
+        return ResponseEntity.ok(infoArticleService.toggleLike(userService.findById(userId), articleId));
     }
 }

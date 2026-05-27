@@ -7,6 +7,7 @@ import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 
+import com.example.coalawebbackend.api.notification.service.NotificationService;
 import com.example.coalawebbackend.api.postlike.dto.PostLikeResponse;
 import com.example.coalawebbackend.domain.post.entity.Post;
 import com.example.coalawebbackend.domain.postlike.entity.PostLike;
@@ -30,6 +31,9 @@ class PostLikeServiceTest {
     @Mock
     private PostLikeRepository postLikeRepository;
 
+    @Mock
+    private NotificationService notificationService;
+
     @Test
     @DisplayName("좋아요 추가 성공 - 기존 좋아요 없음")
     void toggleLike_add() {
@@ -48,6 +52,7 @@ class PostLikeServiceTest {
         assertThat(response.isLiked()).isTrue();
         assertThat(response.getLikeCount()).isEqualTo(1L);
         then(postLikeRepository).should(times(1)).saveAndFlush(any(PostLike.class));
+        then(notificationService).should(times(1)).notifyPostLiked(post, user);
     }
 
     @Test
@@ -69,6 +74,7 @@ class PostLikeServiceTest {
         assertThat(response.isLiked()).isFalse();
         assertThat(response.getLikeCount()).isEqualTo(0L);
         then(postLikeRepository).should(times(1)).delete(postLike);
+        then(notificationService).shouldHaveNoInteractions();
     }
 
     @Test

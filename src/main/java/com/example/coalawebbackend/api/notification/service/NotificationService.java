@@ -104,7 +104,7 @@ public class NotificationService {
 
     @Transactional
     public void notifyInterestedInfo(User actor, InfoArticle article) {
-        String linkUrl = "/community/info";
+        String linkUrl = infoArticleLink(article);
         String message = "새 정보공유 글 \"%s\"이 등록되었습니다.".formatted(article.getTitle());
         userRepository.findByVerifiedTrue().stream()
                 .filter(user -> actor == null || !user.getId().equals(actor.getId()))
@@ -114,6 +114,32 @@ public class NotificationService {
                         "관심정보",
                         message,
                         linkUrl)));
+    }
+
+    @Transactional
+    public void notifyPostLiked(Post post, User actor) {
+        if (post == null || actor == null || post.getUser() == null || post.getUser().getId().equals(actor.getId())) {
+            return;
+        }
+        notificationRepository.save(Notification.create(
+                post.getUser(),
+                NotificationType.LIKE,
+                "새 좋아요",
+                "%s님이 \"%s\" 글을 좋아합니다.".formatted(displayName(actor), post.getTitle()),
+                "/community/board/%d/posts/%d".formatted(post.getBoard().getBoardId(), post.getPostId())));
+    }
+
+    @Transactional
+    public void notifyInfoArticleLiked(InfoArticle article, User actor) {
+        if (article == null || actor == null || article.getAuthor() == null || article.getAuthor().getId().equals(actor.getId())) {
+            return;
+        }
+        notificationRepository.save(Notification.create(
+                article.getAuthor(),
+                NotificationType.LIKE,
+                "새 좋아요",
+                "%s님이 \"%s\" 정보공유 글을 좋아합니다.".formatted(displayName(actor), article.getTitle()),
+                infoArticleLink(article)));
     }
 
     @Transactional
@@ -184,5 +210,18 @@ public class NotificationService {
             return user.getNickname();
         }
         return user.getName();
+    }
+
+    private String infoArticleLink(InfoArticle article) {
+        return "/community/info/%d/posts/%d".formatted(infoBoardId(article), article.getId());
+    }
+
+    private int infoBoardId(InfoArticle article) {
+        return switch (article.getCategory()) {
+            case NEWS -> 11;
+            case CONTEST -> 12;
+            case LAB -> 13;
+            case RESOURCE -> 14;
+        };
     }
 }

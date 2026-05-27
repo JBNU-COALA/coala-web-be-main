@@ -1,5 +1,6 @@
 package com.example.coalawebbackend.domain.postlike.service;
 
+import com.example.coalawebbackend.api.notification.service.NotificationService;
 import com.example.coalawebbackend.api.postlike.dto.PostLikeResponse;
 import com.example.coalawebbackend.common.enums.ErrorCode;
 import com.example.coalawebbackend.common.exception.CustomException;
@@ -19,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class PostLikeService {
 
     private final PostLikeRepository postLikeRepository;
+    private final NotificationService notificationService;
 
     @Transactional
     public PostLikeResponse toggleLike(User user, Post post) {
@@ -37,6 +39,7 @@ public class PostLikeService {
         }
 
         long likeCount = postLikeRepository.countByPost(post);
+        notificationService.notifyPostLiked(post, user);
         return PostLikeResponse.of(true, likeCount);
     }
 }

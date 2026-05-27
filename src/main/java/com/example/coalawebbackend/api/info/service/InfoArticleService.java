@@ -2,6 +2,7 @@ package com.example.coalawebbackend.api.info.service;
 
 import com.example.coalawebbackend.api.info.dto.InfoArticleRequest;
 import com.example.coalawebbackend.api.info.dto.InfoArticleResponse;
+import com.example.coalawebbackend.api.infolike.dto.InfoArticleLikeResponse;
 import com.example.coalawebbackend.api.notification.service.NotificationService;
 import com.example.coalawebbackend.common.enums.ErrorCode;
 import com.example.coalawebbackend.common.exception.CustomException;
@@ -10,6 +11,8 @@ import com.example.coalawebbackend.domain.attachment.service.AttachmentService;
 import com.example.coalawebbackend.domain.info.entity.InfoArticle;
 import com.example.coalawebbackend.domain.info.entity.InfoCategory;
 import com.example.coalawebbackend.domain.info.repository.InfoArticleRepository;
+import com.example.coalawebbackend.domain.infolike.entity.InfoArticleLike;
+import com.example.coalawebbackend.domain.infolike.repository.InfoArticleLikeRepository;
 import com.example.coalawebbackend.domain.moderation.service.PermissionService;
 import com.example.coalawebbackend.domain.user.entity.User;
 import com.example.coalawebbackend.infra.storage.MarkdownArchiveService;
@@ -17,7 +20,9 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -30,12 +35,18 @@ public class InfoArticleService {
     private static final DateTimeFormatter DISPLAY_DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy.MM.dd");
 
     private final InfoArticleRepository infoArticleRepository;
+    private final InfoArticleLikeRepository infoArticleLikeRepository;
     private final PermissionService permissionService;
     private final NotificationService notificationService;
     private final AttachmentService attachmentService;
     private final MarkdownArchiveService markdownArchiveService;
 
     public List<InfoArticleResponse> getArticles(String filter, String query) {
+        return getArticles(filter, query, null);
+    }
+
+    public List<InfoArticleResponse> getArticles(String filter, String query, String currentUserId) {
+        Long parsedUserId = parseUserId(currentUserId);
         InfoCategory category = InfoCategory.from(filter);
         List<InfoArticle> articles = StringUtils.hasText(filter) && !"all".equalsIgnoreCase(filter)
                 ? infoArticleRepository.findByCategoryOrderBySourceDateDescIdDesc(category)
@@ -44,15 +55,20 @@ public class InfoArticleService {
         String normalizedQuery = query == null ? "" : query.trim().toLowerCase();
         return articles.stream()
                 .filter(article -> normalizedQuery.isBlank() || matches(article, normalizedQuery))
-                .map(this::toResponse)
+                .map(article -> toResponse(article, parsedUserId))
                 .toList();
     }
 
     @Transactional
     public InfoArticleResponse getArticle(Long articleId) {
+        return getArticle(articleId, null);
+    }
+
+    @Transactional
+    public InfoArticleResponse getArticle(Long articleId, String currentUserId) {
         InfoArticle article = getArticleEntity(articleId);
         article.increaseViewCount();
-        return toResponse(article);
+        return toResponse(article, parseUserId(currentUserId));
     }
 
     @Transactional
@@ -110,7 +126,9 @@ public class InfoArticleService {
     @Transactional
     public void deleteArticle(User actor, Long articleId) {
         permissionService.assertModerator(actor);
-        infoArticleRepository.delete(getArticleEntity(articleId));
+        InfoArticle article = getArticleEntity(articleId);
+        infoArticleLikeRepository.deleteByArticle(article);
+        infoArticleRepository.delete(article);
     }
 
     @Transactional
@@ -118,6 +136,27 @@ public class InfoArticleService {
         InfoArticle article = getArticleEntity(articleId);
         article.increaseBookmarkCount();
         return toResponse(article);
+    }
+
+    @Transactional
+    public InfoArticleLikeResponse toggleLike(User user, Long articleId) {
+        InfoArticle article = getArticleEntity(articleId);
+        Optional<InfoArticleLike> existing = infoArticleLikeRepository.findByUserAndArticleWithLock(user, article);
+
+        if (existing.isPresent()) {
+            infoArticleLikeRepository.delete(existing.get());
+            return InfoArticleLikeResponse.of(false, infoArticleLikeRepository.countByArticle(article));
+        }
+
+        try {
+            infoArticleLikeRepository.saveAndFlush(InfoArticleLike.create(user, article));
+        } catch (DataIntegrityViolationException e) {
+            throw new CustomException(ErrorCode.DUPLICATE_LIKE);
+        }
+
+        long likeCount = infoArticleLikeRepository.countByArticle(article);
+        notificationService.notifyInfoArticleLiked(article, user);
+        return InfoArticleLikeResponse.of(true, likeCount);
     }
 
     private InfoArticle getArticleEntity(Long articleId) {
@@ -161,6 +200,10 @@ public class InfoArticleService {
     }
 
     private InfoArticleResponse toResponse(InfoArticle article) {
+        return toResponse(article, null);
+    }
+
+    private InfoArticleResponse toResponse(InfoArticle article, Long currentUserId) {
         List<Attachment> attachments = attachmentService.findActiveInfoArticleAttachments(article.getId()).stream()
                 .sorted(Comparator.comparingInt(Attachment::getDisplayOrder).thenComparing(Attachment::getId))
                 .toList();
@@ -190,8 +233,26 @@ public class InfoArticleService {
                 thumbnailAttachmentId,
                 article.getViewCount(),
                 article.getBookmarkCount(),
+                infoArticleLikeRepository.countByArticle(article),
+                isLikedBy(article, currentUserId),
                 article.getCreatedAt() == null ? null : article.getCreatedAt().toString(),
                 article.getUpdatedAt() == null ? null : article.getUpdatedAt().toString()
         );
+    }
+
+    private boolean isLikedBy(InfoArticle article, Long currentUserId) {
+        return currentUserId != null
+                && infoArticleLikeRepository.existsByUser_IdAndArticle_Id(currentUserId, article.getId());
+    }
+
+    private Long parseUserId(String userId) {
+        if (!StringUtils.hasText(userId)) {
+            return null;
+        }
+        try {
+            return Long.parseLong(userId);
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 }

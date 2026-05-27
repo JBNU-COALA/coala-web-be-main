@@ -19,6 +19,8 @@ public record InfoArticleResponse(
         Long thumbnailAttachmentId,
         long viewCount,
         long bookmarkCount,
+        long likeCount,
+        boolean likedByMe,
         String createdAt,
         String updatedAt
 ) {
