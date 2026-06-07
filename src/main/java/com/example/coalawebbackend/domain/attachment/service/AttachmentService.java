@@ -147,6 +147,16 @@ public class AttachmentService {
     }
 
     @Transactional
+    public void markInfoArticleAttachmentsDeleted(Long articleId, User actor) {
+        attachmentRepository.findByTargetTypeAndTargetIdAndStatus(
+                        AttachmentTargetType.INFO_ARTICLE,
+                        articleId,
+                        AttachmentStatus.ACTIVE
+                )
+                .forEach(attachment -> attachment.markDeleted(actor));
+    }
+
+    @Transactional
     public void markPostAttachmentsDeleted(Post post, User actor) {
         attachmentRepository.findByTargetTypeAndTargetIdAndStatus(
                         AttachmentTargetType.POST,

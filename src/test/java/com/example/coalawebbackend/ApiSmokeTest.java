@@ -141,7 +141,52 @@ class ApiSmokeTest {
 
         JsonNode loginJson = readJson(loginResult);
         String refreshToken = loginJson.get("refreshToken").asText();
+        String userAccessToken = loginJson.get("accessToken").asText();
         long smokeUserId = loginJson.get("user").get("id").asLong();
+
+        MvcResult userInfoResult = mockMvc.perform(post("/api/info")
+                        .header("Authorization", bearer(userAccessToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "filter": "resource",
+                                  "tag": "자료",
+                                  "title": "Regular user info",
+                                  "meta": "일반 유저",
+                                  "sourceName": "Regular",
+                                  "sourceDate": "2026-05-01",
+                                  "content": "Regular user info content",
+                                  "imageUrl": ""
+                                }
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.title").value("Regular user info"))
+                .andExpect(jsonPath("$.authorId").value(smokeUserId))
+                .andReturn();
+        long userInfoId = readJson(userInfoResult).get("id").asLong();
+
+        mockMvc.perform(patch("/api/info/{infoId}", userInfoId)
+                        .header("Authorization", bearer(userAccessToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "filter": "news",
+                                  "tag": "소식",
+                                  "title": "Regular user info updated",
+                                  "meta": "일반 유저 수정",
+                                  "sourceName": "Regular",
+                                  "sourceDate": "2026-05-02",
+                                  "content": "Regular user info content updated",
+                                  "imageUrl": ""
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.title").value("Regular user info updated"));
+
+        mockMvc.perform(delete("/api/info/{infoId}", userInfoId)
+                        .header("Authorization", bearer(userAccessToken)))
+                .andExpect(status().isNoContent());
+
         userRepository.findById(smokeUserId).ifPresent(user -> {
             user.grantRole(UserRole.SUPER_ADMIN);
             userRepository.save(user);

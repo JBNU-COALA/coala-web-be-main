@@ -4,6 +4,7 @@ import com.example.coalawebbackend.common.enums.ErrorCode;
 import com.example.coalawebbackend.common.exception.CustomException;
 import com.example.coalawebbackend.domain.board.entity.Board;
 import com.example.coalawebbackend.domain.comment.entity.Comment;
+import com.example.coalawebbackend.domain.info.entity.InfoArticle;
 import com.example.coalawebbackend.domain.post.entity.Post;
 import com.example.coalawebbackend.domain.user.entity.User;
 import lombok.RequiredArgsConstructor;
@@ -64,6 +65,16 @@ public class PermissionService {
             throw new CustomException(ErrorCode.COMMENT_NOT_EDITABLE);
         }
         if (!isOwner(user, comment.getUser())) {
+            throw new CustomException(ErrorCode.ACCESS_DENIED);
+        }
+    }
+
+    public void assertCanCreateInfoArticle(User user) {
+        sanctionPolicyService.assertCanWritePost(user);
+    }
+
+    public void assertCanManageInfoArticle(User user, InfoArticle article) {
+        if (!isOwner(user, article.getAuthor()) && !canModerate(user)) {
             throw new CustomException(ErrorCode.ACCESS_DENIED);
         }
     }

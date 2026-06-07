@@ -13,6 +13,7 @@ import com.example.coalawebbackend.domain.info.entity.InfoCategory;
 import com.example.coalawebbackend.domain.info.repository.InfoArticleRepository;
 import com.example.coalawebbackend.domain.infolike.entity.InfoArticleLike;
 import com.example.coalawebbackend.domain.infolike.repository.InfoArticleLikeRepository;
+import com.example.coalawebbackend.domain.moderation.service.ContentSafetyService;
 import com.example.coalawebbackend.domain.moderation.service.PermissionService;
 import com.example.coalawebbackend.domain.user.entity.User;
 import com.example.coalawebbackend.infra.storage.MarkdownArchiveService;
@@ -37,6 +38,7 @@ public class InfoArticleService {
     private final InfoArticleRepository infoArticleRepository;
     private final InfoArticleLikeRepository infoArticleLikeRepository;
     private final PermissionService permissionService;
+    private final ContentSafetyService contentSafetyService;
     private final NotificationService notificationService;
     private final AttachmentService attachmentService;
     private final MarkdownArchiveService markdownArchiveService;
@@ -73,7 +75,8 @@ public class InfoArticleService {
 
     @Transactional
     public InfoArticleResponse createArticle(User actor, InfoArticleRequest request) {
-        permissionService.assertModerator(actor);
+        permissionService.assertCanCreateInfoArticle(actor);
+        validateContent(request);
         String authorName = displayName(actor);
         InfoArticle article = InfoArticle.builder()
                 .category(InfoCategory.from(request.filter()))
@@ -100,8 +103,9 @@ public class InfoArticleService {
 
     @Transactional
     public InfoArticleResponse updateArticle(User actor, Long articleId, InfoArticleRequest request) {
-        permissionService.assertModerator(actor);
         InfoArticle article = getArticleEntity(articleId);
+        permissionService.assertCanManageInfoArticle(actor, article);
+        validateContent(request);
         article.update(
                 InfoCategory.from(request.filter()),
                 request.tag(),
@@ -125,9 +129,10 @@ public class InfoArticleService {
 
     @Transactional
     public void deleteArticle(User actor, Long articleId) {
-        permissionService.assertModerator(actor);
         InfoArticle article = getArticleEntity(articleId);
+        permissionService.assertCanManageInfoArticle(actor, article);
         infoArticleLikeRepository.deleteByArticle(article);
+        attachmentService.markInfoArticleAttachmentsDeleted(article.getId(), actor);
         infoArticleRepository.delete(article);
     }
 
@@ -162,6 +167,12 @@ public class InfoArticleService {
     private InfoArticle getArticleEntity(Long articleId) {
         return infoArticleRepository.findById(articleId)
                 .orElseThrow(() -> new CustomException(ErrorCode.RESOURCE_NOT_FOUND));
+    }
+
+    private void validateContent(InfoArticleRequest request) {
+        contentSafetyService.validateMarkdown(request.title());
+        contentSafetyService.validateMarkdown(request.meta());
+        contentSafetyService.validateMarkdown(request.content());
     }
 
     private boolean matches(InfoArticle article, String query) {
