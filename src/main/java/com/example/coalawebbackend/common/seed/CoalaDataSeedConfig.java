@@ -147,14 +147,6 @@ public class CoalaDataSeedConfig {
     private static final String QNA_SEED_POST_TITLE = "개발자 준비 중인데 질문드립니다";
 
     private void seedQnaThread(Board qnaBoard) {
-        boolean alreadySeeded = postRepository
-                .findByBoardBoardIdAndStatusOrderByCreatedAtDesc(qnaBoard.getBoardId(), PostStatus.ACTIVE)
-                .stream()
-                .anyMatch(post -> post.getTitle().equals(QNA_SEED_POST_TITLE));
-        if (alreadySeeded) {
-            return;
-        }
-
         new TransactionTemplate(transactionManager).executeWithoutResult(status -> seedQnaThreadInTransaction(qnaBoard));
     }
 
@@ -166,9 +158,18 @@ public class CoalaDataSeedConfig {
         User seniorMentor = seedUser("qna-mentor-senior@jbnu.ac.kr", "코알라선배", "qna-mentor-senior",
                 "컴퓨터인공지능학부", "20190003", null, AcademicStatus.GRADUATED, "qna-mentor-senior-seed");
 
-        anonymousProfileService.updateDisplayName(qnaBoard, author, "컴퓨터공학과 2학년");
-        anonymousProfileService.updateDisplayName(qnaBoard, juniorMentor, "동아리 3학년 개발자");
-        anonymousProfileService.updateDisplayName(qnaBoard, seniorMentor, "대학원 진학 선배");
+        // 표시명은 배포 때마다 최신 값으로 맞춰준다 (이미 시드된 환경에서도 갱신되도록).
+        anonymousProfileService.updateDisplayName(qnaBoard, author, "익명1");
+        anonymousProfileService.updateDisplayName(qnaBoard, juniorMentor, "익명2");
+        anonymousProfileService.updateDisplayName(qnaBoard, seniorMentor, "익명3");
+
+        boolean alreadySeeded = postRepository
+                .findByBoardBoardIdAndStatusOrderByCreatedAtDesc(qnaBoard.getBoardId(), PostStatus.ACTIVE)
+                .stream()
+                .anyMatch(post -> post.getTitle().equals(QNA_SEED_POST_TITLE));
+        if (alreadySeeded) {
+            return;
+        }
 
         Post post = postRepository.save(Post.create(
                 QNA_SEED_POST_TITLE,
