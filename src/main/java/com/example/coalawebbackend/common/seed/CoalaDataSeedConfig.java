@@ -5,6 +5,7 @@ import com.example.coalawebbackend.domain.board.entity.Board;
 import com.example.coalawebbackend.domain.board.repository.BoardRepository;
 import com.example.coalawebbackend.domain.comment.entity.Comment;
 import com.example.coalawebbackend.domain.comment.repository.CommentRepository;
+import com.example.coalawebbackend.domain.commentlike.repository.CommentLikeRepository;
 import com.example.coalawebbackend.domain.info.entity.InfoArticle;
 import com.example.coalawebbackend.domain.info.entity.InfoCategory;
 import com.example.coalawebbackend.domain.info.repository.InfoArticleRepository;
@@ -35,6 +36,7 @@ import com.example.coalawebbackend.domain.user.repository.UserRepository;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationRunner;
@@ -53,6 +55,7 @@ public class CoalaDataSeedConfig {
     private final BoardRepository boardRepository;
     private final PostRepository postRepository;
     private final CommentRepository commentRepository;
+    private final CommentLikeRepository commentLikeRepository;
     private final AnonymousProfileService anonymousProfileService;
     private final PublicUserProfileRepository publicUserProfileRepository;
     private final MemberServiceRepository memberServiceRepository;
@@ -159,26 +162,37 @@ public class CoalaDataSeedConfig {
                 "컴퓨터인공지능학부", "20190003", null, AcademicStatus.GRADUATED, "qna-mentor-senior-seed");
 
         // 표시명은 배포 때마다 최신 값으로 맞춰준다 (이미 시드된 환경에서도 갱신되도록).
-        anonymousProfileService.updateDisplayName(qnaBoard, author, "익명1");
-        anonymousProfileService.updateDisplayName(qnaBoard, juniorMentor, "익명2");
-        anonymousProfileService.updateDisplayName(qnaBoard, seniorMentor, "익명3");
+        anonymousProfileService.updateDisplayName(qnaBoard, author, "익명");
+        anonymousProfileService.updateDisplayName(qnaBoard, juniorMentor, "익명");
+        anonymousProfileService.updateDisplayName(qnaBoard, seniorMentor, "익명");
 
-        boolean alreadySeeded = postRepository
+        Post post = postRepository
                 .findByBoardBoardIdAndStatusOrderByCreatedAtDesc(qnaBoard.getBoardId(), PostStatus.ACTIVE)
                 .stream()
-                .anyMatch(post -> post.getTitle().equals(QNA_SEED_POST_TITLE));
-        if (alreadySeeded) {
-            return;
+                .filter(p -> p.getTitle().equals(QNA_SEED_POST_TITLE))
+                .findFirst()
+                .orElse(null);
+
+        LocalDateTime postTime = LocalDate.now().minusDays(1).atTime(9, 0);
+        if (post == null) {
+            post = postRepository.save(Post.create(
+                    QNA_SEED_POST_TITLE,
+                    "안녕하세요 현재 2학년 재학생입니다. 개발자를 목표로 공부하고 있는데 무엇부터 준비하면 좋을지 잘 모르겠습니다. "
+                            + "보통 어떤 순서로 공부하셨는지, 지금부터 하면 좋은 것들이 있다면 알려주실 수 있나요?",
+                    qnaBoard,
+                    author));
+            postRepository.backdateTimestamps(post.getPostId(), postTime, postTime);
         }
 
-        Post post = postRepository.save(Post.create(
-                QNA_SEED_POST_TITLE,
-                "안녕하세요 현재 2학년 재학생입니다. 개발자를 목표로 공부하고 있는데 무엇부터 준비하면 좋을지 잘 모르겠습니다. "
-                        + "보통 어떤 순서로 공부하셨는지, 지금부터 하면 좋은 것들이 있다면 알려주실 수 있나요?",
-                qnaBoard,
-                author));
-        LocalDateTime postTime = LocalDate.now().minusDays(1).atTime(9, 0);
-        postRepository.backdateTimestamps(post.getPostId(), postTime, postTime);
+        // 시드 계정(author/juniorMentor/seniorMentor)이 단 댓글만 지우고 다시 만든다.
+        // 실제 방문자가 남긴 댓글은 다른 user_id를 가지므로 건드리지 않는다.
+        Set<Long> seedAuthorIds = Set.of(author.getId(), juniorMentor.getId(), seniorMentor.getId());
+        List<Comment> previousSeedComments = commentRepository.findByPost_PostIdOrderByCreatedAtAsc(post.getPostId())
+                .stream()
+                .filter(comment -> seedAuthorIds.contains(comment.getUser().getId()))
+                .toList();
+        previousSeedComments.forEach(commentLikeRepository::deleteByComment);
+        commentRepository.deleteAll(previousSeedComments);
 
         LocalDateTime comment1Time = postTime.plusHours(4);
         Comment comment1 = commentRepository.save(Comment.create(
@@ -204,14 +218,13 @@ public class CoalaDataSeedConfig {
         LocalDateTime comment4Time = comment3Time.plusHours(5);
         Comment comment4 = commentRepository.save(Comment.create(
                 post, seniorMentor,
-                "요즘은 Cloud나 AI Agent처럼 본인이 어떤 분야를 목표로 할지 먼저 정하시면 되고, 언어 자체는 크게 중요하지 않습니다. "
-                        + "만들고 싶은 서비스와 생태계에 맞춰 선택하시면 됩니다.\n\n"
-                        + "백엔드라면 Java(Spring Boot), Python(FastAPI, Django), Node.js 정도 있습니다. Python은 AI와 데이터 분야에서 활용도가 높아 "
-                        + "최근 수요가 많고, 언어 자체를 잘하면 다양한 기업에서 활용할 수 있어서 좋아요. Node.js는 개발 속도가 빠르고 JavaScript 하나로 프론트와 백엔드 모두 "
-                        + "개발할 수 있어 스타트업이나 중소 중견기업에서 많이 사용합니다. Java는 Spring Boot 생태계가 탄탄하고, 전자정부프레임워크를 사용하는 공공사업이나 "
-                        + "대기업에서 많이 활용됩니다.\n\n"
-                        + "어떤 언어를 선택하든 하나를 제대로 익히면 다른 언어를 배우는 것은 생각보다 어렵지 않습니다. 언어를 자주 바꾸기보다는 하나를 선택해서 프로젝트를 "
-                        + "깊이 있게 진행해보시는 것을 추천드립니다."));
+                "요즘은 Cloud나 AI Agent처럼 어느 쪽으로 갈지 먼저 생각해보시면 되고, 언어 자체는 크게 중요하지 않아요. "
+                        + "만들고 싶은 서비스나 가고 싶은 기업에 맞춰 선택하시면 됩니다.\n\n"
+                        + "백엔드 기준으로는 Java(Spring Boot), Python(FastAPI, Django), Node.js 정도가 있어요. Python은 AI 활용도가 높고 "
+                        + "최근 수요도 많아서 언어 자체를 잘하면 다양하게 갈 수 있고요. Node.js는 개발 속도가 빠르고 JavaScript 하나로 풀스택 개발을 할 수 있어서 "
+                        + "스타트업이나 중소·중견기업에서 많이 사용하는 편이에요. Java는 Spring Boot 생태계가 탄탄하고 전자정부프레임워크를 사용하는 공공사업이나 "
+                        + "대기업에서 많이 사용하니, 원하는 프레임워크를 고르시면 될 것 같아요.\n\n"
+                        + "요즘은 개발 장벽이 낮아서 언어를 계속 바꾸기보다는 하나를 선택해서 프로젝트를 깊이 있게 진행해보시는 걸 추천드립니다."));
         commentRepository.backdateTimestamps(comment4.getId(), comment4Time, comment4Time);
     }
 
