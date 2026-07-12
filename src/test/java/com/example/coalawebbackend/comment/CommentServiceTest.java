@@ -72,10 +72,12 @@ class CommentServiceTest {
     void createComment_success() {
         // given
         Post post = mock(Post.class);
+        Board board = mock(Board.class);
         User user = mock(User.class);
         CreateCommentRequest request = mock(CreateCommentRequest.class);
         Comment comment = Comment.create(post, user, "테스트 댓글");
 
+        given(post.getBoard()).willReturn(board);
         given(request.getContent()).willReturn("테스트 댓글");
         given(commentRepository.save(any(Comment.class))).willReturn(comment);
 
@@ -95,11 +97,13 @@ class CommentServiceTest {
         Long postId = 1L;
         Long parentCommentId = 10L;
         Post post = mock(Post.class);
+        Board board = mock(Board.class);
         User user = mock(User.class);
         User parentUser = mock(User.class);
         Comment parent = Comment.create(post, parentUser, "부모 댓글");
         CreateCommentRequest request = new CreateCommentRequest("테스트 답글", parentCommentId);
 
+        given(post.getBoard()).willReturn(board);
         given(post.getPostId()).willReturn(postId);
         given(user.getId()).willReturn(2L);
         given(user.getNickname()).willReturn(null);

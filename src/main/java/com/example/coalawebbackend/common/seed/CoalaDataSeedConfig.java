@@ -71,11 +71,16 @@ public class CoalaDataSeedConfig {
     @Order(20)
     public ApplicationRunner coalaDataSeedRunner() {
         return args -> {
+            User systemUser = seedSystemUser();
+
+            // 익명 질문게시판과 예시 스레드는 운영 환경에서도 항상 존재해야 하는 실제 기능이므로
+            // 개발용 더미 데이터 시드 스위치(enabled)와 무관하게 항상 보장한다.
+            seedQnaBoard(systemUser);
+
             if (!enabled) {
                 return;
             }
 
-            User systemUser = seedSystemUser();
             seedBoardsAndPosts(systemUser);
             seedProfiles();
             seedMemberServices();
@@ -114,7 +119,6 @@ public class CoalaDataSeedConfig {
         findOrCreateBoard("자료", "정보공유 자료", "NORMAL", user);
         findOrCreateBoard("문의사항", "인스턴스 문의사항", "NORMAL", user);
         findOrCreateBoard("모집", "스터디/프로젝트 모집", "RECRUIT", user);
-        Board qna = findOrCreateBoard("질문게시판", "개발, 진로, 연구실, 대학원 관련 익명 질문 게시판", "ANONYMOUS", user);
 
         if (postRepository.count() == 0) {
             postRepository.save(Post.create(
@@ -133,7 +137,10 @@ public class CoalaDataSeedConfig {
                     humor,
                     user));
         }
+    }
 
+    private void seedQnaBoard(User user) {
+        Board qna = findOrCreateBoard("질문게시판", "개발, 진로, 연구실, 대학원 관련 익명 질문 게시판", "ANONYMOUS", user);
         seedQnaThread(qna);
     }
 

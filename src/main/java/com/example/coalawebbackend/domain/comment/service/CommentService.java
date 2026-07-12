@@ -65,7 +65,11 @@ public class CommentService {
         } else {
             notificationService.notifyReplyCreated(post, parent, savedComment);
         }
-        return CreateCommentResponse.from(savedComment);
+        boolean anonymous = isAnonymousBoard(savedComment);
+        String displayName = anonymous
+                ? anonymousProfileService.getDisplayName(post.getBoard(), user)
+                : resolveRealName(savedComment);
+        return CreateCommentResponse.from(savedComment, displayName, anonymous);
     }
 
     public List<CommentResponse> getComments(Long postId) {
@@ -93,12 +97,16 @@ public class CommentService {
     }
 
     private CommentResponse toCommentResponse(Comment comment, List<CommentResponse> replies, Long currentUserId) {
-        boolean anonymous = comment.getPost().getBoard().getType() == BoardType.ANONYMOUS;
+        boolean anonymous = isAnonymousBoard(comment);
         boolean mine = currentUserId != null && currentUserId.equals(comment.getUser().getId());
         String displayName = anonymous
                 ? anonymousProfileService.getDisplayName(comment.getPost().getBoard(), comment.getUser())
                 : resolveRealName(comment);
         return CommentResponse.from(comment, replies, displayName, anonymous, mine);
+    }
+
+    private boolean isAnonymousBoard(Comment comment) {
+        return comment.getPost().getBoard().getType() == BoardType.ANONYMOUS;
     }
 
     private String resolveRealName(Comment comment) {
