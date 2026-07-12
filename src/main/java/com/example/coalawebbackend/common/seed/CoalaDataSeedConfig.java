@@ -1,7 +1,10 @@
 package com.example.coalawebbackend.common.seed;
 
+import com.example.coalawebbackend.domain.anonymous.service.AnonymousProfileService;
 import com.example.coalawebbackend.domain.board.entity.Board;
 import com.example.coalawebbackend.domain.board.repository.BoardRepository;
+import com.example.coalawebbackend.domain.comment.entity.Comment;
+import com.example.coalawebbackend.domain.comment.repository.CommentRepository;
 import com.example.coalawebbackend.domain.info.entity.InfoArticle;
 import com.example.coalawebbackend.domain.info.entity.InfoCategory;
 import com.example.coalawebbackend.domain.info.repository.InfoArticleRepository;
@@ -14,6 +17,7 @@ import com.example.coalawebbackend.domain.instance.repository.ServiceInquiryRepo
 import com.example.coalawebbackend.domain.memberservice.entity.MemberService;
 import com.example.coalawebbackend.domain.memberservice.repository.MemberServiceRepository;
 import com.example.coalawebbackend.domain.post.entity.Post;
+import com.example.coalawebbackend.domain.post.entity.PostStatus;
 import com.example.coalawebbackend.domain.post.repository.PostRepository;
 import com.example.coalawebbackend.domain.profile.entity.PublicUserActivityLog;
 import com.example.coalawebbackend.domain.profile.entity.PublicUserAward;
@@ -29,6 +33,7 @@ import com.example.coalawebbackend.domain.user.entity.Gender;
 import com.example.coalawebbackend.domain.user.entity.User;
 import com.example.coalawebbackend.domain.user.repository.UserRepository;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -37,6 +42,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 @Configuration
 @RequiredArgsConstructor
@@ -45,6 +52,8 @@ public class CoalaDataSeedConfig {
     private final UserRepository userRepository;
     private final BoardRepository boardRepository;
     private final PostRepository postRepository;
+    private final CommentRepository commentRepository;
+    private final AnonymousProfileService anonymousProfileService;
     private final PublicUserProfileRepository publicUserProfileRepository;
     private final MemberServiceRepository memberServiceRepository;
     private final InstanceApplicationRepository instanceApplicationRepository;
@@ -53,6 +62,7 @@ public class CoalaDataSeedConfig {
     private final RecruitPostRepository recruitPostRepository;
     private final RecruitCommentRepository recruitCommentRepository;
     private final PasswordEncoder passwordEncoder;
+    private final PlatformTransactionManager transactionManager;
 
     @Value("${app.seed.dev-account.enabled:false}")
     private boolean enabled;
@@ -104,25 +114,116 @@ public class CoalaDataSeedConfig {
         findOrCreateBoard("자료", "정보공유 자료", "NORMAL", user);
         findOrCreateBoard("문의사항", "인스턴스 문의사항", "NORMAL", user);
         findOrCreateBoard("모집", "스터디/프로젝트 모집", "RECRUIT", user);
+        Board qna = findOrCreateBoard("질문게시판", "개발, 진로, 연구실, 대학원 관련 익명 질문 게시판", "ANONYMOUS", user);
 
-        if (postRepository.count() > 0) {
+        if (postRepository.count() == 0) {
+            postRepository.save(Post.create(
+                    "동아리 코알라 이용 가이드와 온보딩 공지",
+                    "신규 합류자가 빠르게 적응할 수 있도록 운영진이 정리해 둔 체크리스트와 공지를 모았습니다.",
+                    notice,
+                    user));
+            postRepository.save(Post.create(
+                    "2026년 생산성 루틴 공유 스레드",
+                    "아침 루틴부터 사이드 프로젝트를 병행하는 방법까지, 멤버들의 실제 스케줄을 공유합니다.",
+                    free,
+                    user));
+            postRepository.save(Post.create(
+                    "코딩하다가 새벽 3시에 깨달은 순간들",
+                    "콘솔 로그 한 줄 때문에 밤을 새운 경험담과 가벼운 밈을 나누는 스레드입니다.",
+                    humor,
+                    user));
+        }
+
+        seedQnaThread(qna);
+    }
+
+    private static final String QNA_SEED_POST_TITLE = "개발자 준비 중인데 질문드립니다";
+
+    private void seedQnaThread(Board qnaBoard) {
+        boolean alreadySeeded = postRepository
+                .findByBoardBoardIdAndStatusOrderByCreatedAtDesc(qnaBoard.getBoardId(), PostStatus.ACTIVE)
+                .stream()
+                .anyMatch(post -> post.getTitle().equals(QNA_SEED_POST_TITLE));
+        if (alreadySeeded) {
             return;
         }
-        postRepository.save(Post.create(
-                "동아리 코알라 이용 가이드와 온보딩 공지",
-                "신규 합류자가 빠르게 적응할 수 있도록 운영진이 정리해 둔 체크리스트와 공지를 모았습니다.",
-                notice,
-                user));
-        postRepository.save(Post.create(
-                "2026년 생산성 루틴 공유 스레드",
-                "아침 루틴부터 사이드 프로젝트를 병행하는 방법까지, 멤버들의 실제 스케줄을 공유합니다.",
-                free,
-                user));
-        postRepository.save(Post.create(
-                "코딩하다가 새벽 3시에 깨달은 순간들",
-                "콘솔 로그 한 줄 때문에 밤을 새운 경험담과 가벼운 밈을 나누는 스레드입니다.",
-                humor,
-                user));
+
+        new TransactionTemplate(transactionManager).executeWithoutResult(status -> seedQnaThreadInTransaction(qnaBoard));
+    }
+
+    private void seedQnaThreadInTransaction(Board qnaBoard) {
+        User author = seedUser("qna-author@jbnu.ac.kr", "질문학생", "qna-author",
+                "컴퓨터공학과", "20230001", 2, AcademicStatus.ENROLLED, "qna-author-seed");
+        User juniorMentor = seedUser("qna-mentor-junior@jbnu.ac.kr", "코알라멤버1", "qna-mentor-junior",
+                "컴퓨터인공지능학부", "20220002", 3, AcademicStatus.ENROLLED, "qna-mentor-junior-seed");
+        User seniorMentor = seedUser("qna-mentor-senior@jbnu.ac.kr", "코알라선배", "qna-mentor-senior",
+                "컴퓨터인공지능학부", "20190003", null, AcademicStatus.GRADUATED, "qna-mentor-senior-seed");
+
+        anonymousProfileService.updateDisplayName(qnaBoard, author, "컴퓨터공학과 2학년");
+        anonymousProfileService.updateDisplayName(qnaBoard, juniorMentor, "동아리 3학년 개발자");
+        anonymousProfileService.updateDisplayName(qnaBoard, seniorMentor, "대학원 진학 선배");
+
+        Post post = postRepository.save(Post.create(
+                QNA_SEED_POST_TITLE,
+                "안녕하세요 현재 2학년 재학생입니다. 개발자를 목표로 공부하고 있는데 무엇부터 준비하면 좋을지 잘 모르겠습니다. "
+                        + "보통 어떤 순서로 공부하셨는지, 지금부터 하면 좋은 것들이 있다면 알려주실 수 있나요?",
+                qnaBoard,
+                author));
+        LocalDateTime postTime = LocalDate.now().minusDays(1).atTime(9, 0);
+        postRepository.backdateTimestamps(post.getPostId(), postTime, postTime);
+
+        LocalDateTime comment1Time = postTime.plusHours(4);
+        Comment comment1 = commentRepository.save(Comment.create(
+                post, juniorMentor,
+                "일단 한 언어를 꾸준히 공부하셨다면 간단한 프로젝트를 하시면 될 것 같아요 웹이든 앱이든 간단한 프로젝트를 만드시면 될듯 합니다."));
+        commentRepository.backdateTimestamps(comment1.getId(), comment1Time, comment1Time);
+
+        LocalDateTime comment2Time = comment1Time.plusHours(12);
+        Comment comment2 = commentRepository.save(Comment.create(
+                post, seniorMentor,
+                "음 전 책이나 강의를 보면서 객체지향, 웹 통신 방식, 이후에 MVC구조, CRUD을 먼저 공부한 뒤 프로젝트를 시작하는 방식으로 공부하긴했는데 "
+                        + "요즘은 프로젝트를 먼저 시작하는 분들도 많은 것 같긴합니다. 걍 예를 들어 로그인 기능을 만들고 싶다, 게시판을 만들고 싶다 같은 기능을 목표로 잡고 "
+                        + "Claude나 Codex 같은 AI에게 구현 방법을 물어보며 개발을 진행하고 그러다 막히는 부분이 생길 때마다 관련 개념을 공부하는 방식으로도 하시는 것 같더라고요 "
+                        + "사용자 흐름에 맞춰 필요한 요구사항을 먼저 정리하고 그 요구사항을 구현하는 데 필요한 기술과 구조를 하나씩 익혀가는 방식도 ㄱㅊ아 보입니다."));
+        commentRepository.backdateTimestamps(comment2.getId(), comment2Time, comment2Time);
+
+        LocalDateTime comment3Time = comment2Time.plusHours(6);
+        Comment comment3 = commentRepository.save(Comment.create(
+                post, author,
+                "답변 감사합니다! 혹시 백엔드를 희망하려는데 Python할까요 아니면 java할까요"));
+        commentRepository.backdateTimestamps(comment3.getId(), comment3Time, comment3Time);
+
+        LocalDateTime comment4Time = comment3Time.plusHours(5);
+        Comment comment4 = commentRepository.save(Comment.create(
+                post, seniorMentor,
+                "요즘은 Cloud나 AI Agent처럼 본인이 어떤 분야를 목표로 할지 먼저 정하시면 되고, 언어 자체는 크게 중요하지 않습니다. "
+                        + "만들고 싶은 서비스와 생태계에 맞춰 선택하시면 됩니다.\n\n"
+                        + "백엔드라면 Java(Spring Boot), Python(FastAPI, Django), Node.js 정도 있습니다. Python은 AI와 데이터 분야에서 활용도가 높아 "
+                        + "최근 수요가 많고, 언어 자체를 잘하면 다양한 기업에서 활용할 수 있어서 좋아요. Node.js는 개발 속도가 빠르고 JavaScript 하나로 프론트와 백엔드 모두 "
+                        + "개발할 수 있어 스타트업이나 중소 중견기업에서 많이 사용합니다. Java는 Spring Boot 생태계가 탄탄하고, 전자정부프레임워크를 사용하는 공공사업이나 "
+                        + "대기업에서 많이 활용됩니다.\n\n"
+                        + "어떤 언어를 선택하든 하나를 제대로 익히면 다른 언어를 배우는 것은 생각보다 어렵지 않습니다. 언어를 자주 바꾸기보다는 하나를 선택해서 프로젝트를 "
+                        + "깊이 있게 진행해보시는 것을 추천드립니다."));
+        commentRepository.backdateTimestamps(comment4.getId(), comment4Time, comment4Time);
+    }
+
+    private User seedUser(String email, String name, String nickname, String department,
+                          String studentId, Integer grade, AcademicStatus academicStatus, String githubId) {
+        return userRepository.findByEmail(email)
+                .orElseGet(() -> userRepository.save(User.builder()
+                        .email(email)
+                        .password(passwordEncoder.encode("Seed1234!"))
+                        .name(name)
+                        .nickname(nickname)
+                        .birthDate(LocalDate.of(2001, 1, 1))
+                        .gender(Gender.PREFER_NOT_TO_SAY)
+                        .department(department)
+                        .studentId(studentId)
+                        .grade(grade)
+                        .githubId(githubId)
+                        .academicStatus(academicStatus)
+                        .verified(true)
+                        .build()));
     }
 
     private Board findOrCreateBoard(String name, String description, String type, User user) {

@@ -3,6 +3,7 @@ package com.example.coalawebbackend.domain.comment.repository;
 import com.example.coalawebbackend.domain.comment.entity.Comment;
 import com.example.coalawebbackend.domain.comment.entity.CommentStatus;
 import com.example.coalawebbackend.domain.post.entity.Post;
+import java.time.LocalDateTime;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -41,4 +42,11 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     @Modifying
     @Query("DELETE FROM Comment c WHERE c.post = :post")
     void deleteByPost(@Param("post") Post post);
+
+    @Modifying
+    @Query("UPDATE Comment c SET c.createdAt = :createdAt, c.updatedAt = :updatedAt WHERE c.id = :commentId")
+    void backdateTimestamps(
+            @Param("commentId") Long commentId,
+            @Param("createdAt") LocalDateTime createdAt,
+            @Param("updatedAt") LocalDateTime updatedAt);
 }

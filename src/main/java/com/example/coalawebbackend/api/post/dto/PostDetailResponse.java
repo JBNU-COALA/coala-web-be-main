@@ -16,8 +16,10 @@ public class PostDetailResponse {
     private Long postId;
     private Long boardId;
     private String boardName;
-    private Long userId;
+    private Long userId;           // 익명 게시판에서는 본인 글이 아닌 경우 null
     private String authorName;
+    private boolean anonymous;
+    private boolean mine;
 
     private String title;
     private String content;
@@ -33,26 +35,23 @@ public class PostDetailResponse {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    public static PostDetailResponse from(Post post) {
-        return from(post, 0, 0);
-    }
-
-    public static PostDetailResponse from(Post post, long commentCount, long likeCount) {
-        return from(post, commentCount, likeCount, false);
-    }
-
-    public static PostDetailResponse from(Post post, long commentCount, long likeCount, boolean likedByMe) {
-        String nickname = post.getUser().getNickname();
-        String displayName = (nickname != null && !nickname.isBlank())
-                ? nickname
-                : post.getUser().getName();
-
+    public static PostDetailResponse from(
+            Post post,
+            long commentCount,
+            long likeCount,
+            boolean likedByMe,
+            String displayName,
+            boolean anonymous,
+            boolean mine
+    ) {
         return PostDetailResponse.builder()
                 .postId(post.getPostId())
                 .boardId(post.getBoard().getBoardId())
                 .boardName(post.getBoard().getName())
-                .userId(post.getUser().getId())
+                .userId(anonymous && !mine ? null : post.getUser().getId())
                 .authorName(displayName)
+                .anonymous(anonymous)
+                .mine(mine)
                 .title(post.getTitle())
                 .content(post.getContent())
                 .status(post.getStatus())

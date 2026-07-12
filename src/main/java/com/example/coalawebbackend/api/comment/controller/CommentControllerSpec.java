@@ -54,13 +54,15 @@ public interface CommentControllerSpec {
             @ApiResponse(responseCode = "404", description = "게시글을 찾을 수 없음")
     })
     ResponseEntity<List<CommentResponse>> getComments(
-            @PathVariable Long postId
+            @PathVariable Long postId,
+            String userId
     );
 
     @Operation(summary = "대댓글 목록 조회", description = "댓글의 대댓글 목록을 조회합니다.")
     ResponseEntity<List<CommentResponse>> getReplies(
             @PathVariable Long postId,
-            @PathVariable Long commentId
+            @PathVariable Long commentId,
+            String userId
     );
 
     @Operation(summary = "댓글 수정", description = "댓글 내용을 수정합니다.")

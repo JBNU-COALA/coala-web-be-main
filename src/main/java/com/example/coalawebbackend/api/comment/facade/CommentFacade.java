@@ -28,15 +28,26 @@ public class CommentFacade {
         return commentService.createComment(post, user, request);
     }
 
-    public List<CommentResponse> getComments(Long postId) {
+    public List<CommentResponse> getComments(Long postId, String currentUserId) {
         postService.getVisiblePostById(postId);
-        return commentService.getComments(postId);
+        return commentService.getComments(postId, parseUserId(currentUserId));
     }
 
-    public List<CommentResponse> getReplies(Long postId, Long commentId) {
+    public List<CommentResponse> getReplies(Long postId, Long commentId, String currentUserId) {
         postService.getVisiblePostById(postId);
         commentService.getCommentInPost(postId, commentId);
-        return commentService.getReplies(postId, commentId);
+        return commentService.getReplies(postId, commentId, parseUserId(currentUserId));
+    }
+
+    private Long parseUserId(String userId) {
+        if (userId == null || userId.isBlank()) {
+            return null;
+        }
+        try {
+            return Long.parseLong(userId);
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
     public CreateCommentResponse createReply(Long postId, Long commentId, CreateCommentRequest request, String userId) {

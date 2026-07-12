@@ -16,8 +16,10 @@ public class CommentResponse {
 
     private Long commentId;
     private Long parentCommentId;
-    private Long userId;
+    private Long userId;           // 익명 게시판에서는 본인 댓글이 아닌 경우 null
     private String authorName;
+    private boolean anonymous;
+    private boolean mine;
     private String content;
     private CommentStatus status;
     private LocalDateTime createdAt;
@@ -25,21 +27,20 @@ public class CommentResponse {
     @Builder.Default
     private List<CommentResponse> replies = List.of();
 
-    public static CommentResponse from(Comment comment) {
-        return from(comment, List.of());
-    }
-
-    public static CommentResponse from(Comment comment, List<CommentResponse> replies) {
-        String nickname = comment.getUser().getNickname();
-        String displayName = (nickname != null && !nickname.isBlank())
-                ? nickname
-                : comment.getUser().getName();
-
+    public static CommentResponse from(
+            Comment comment,
+            List<CommentResponse> replies,
+            String displayName,
+            boolean anonymous,
+            boolean mine
+    ) {
         return CommentResponse.builder()
                 .commentId(comment.getId())
                 .parentCommentId(comment.getParent() == null ? null : comment.getParent().getId())
-                .userId(comment.getUser().getId())
+                .userId(anonymous && !mine ? null : comment.getUser().getId())
                 .authorName(displayName)
+                .anonymous(anonymous)
+                .mine(mine)
                 .content(displayContent(comment))
                 .status(comment.getStatus())
                 .createdAt(comment.getCreatedAt())

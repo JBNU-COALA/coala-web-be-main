@@ -8,8 +8,10 @@ import com.example.coalawebbackend.api.post.dto.PostRequest;
 import com.example.coalawebbackend.api.post.dto.UpdatePostResponse;
 import com.example.coalawebbackend.common.enums.ErrorCode;
 import com.example.coalawebbackend.common.exception.CustomException;
+import com.example.coalawebbackend.domain.anonymous.service.AnonymousProfileService;
 import com.example.coalawebbackend.domain.attachment.service.AttachmentService;
 import com.example.coalawebbackend.domain.board.entity.Board;
+import com.example.coalawebbackend.domain.board.entity.BoardType;
 import com.example.coalawebbackend.domain.board.service.BoardService;
 import com.example.coalawebbackend.domain.comment.repository.CommentRepository;
 import com.example.coalawebbackend.domain.moderation.entity.ContentHistoryAction;
@@ -41,6 +43,7 @@ public class PostService {
     private final ContentSafetyService contentSafetyService;
     private final AttachmentService attachmentService;
     private final MarkdownArchiveService markdownArchiveService;
+    private final AnonymousProfileService anonymousProfileService;
 
     @Transactional
     public CreatePostResponse createPost(User user, Long boardId, PostRequest request) {
@@ -48,6 +51,9 @@ public class PostService {
         permissionService.assertCanCreatePost(user, board);
         contentSafetyService.validateMarkdown(request.getTitle());
         contentSafetyService.validateMarkdown(request.getContent());
+        if (board.getType() == BoardType.ANONYMOUS) {
+            anonymousProfileService.getOrCreateProfile(board, user);
+        }
         Post post = Post.create(request.getTitle(), request.getContent(), board, user);
         Post savedPost = postRepository.save(post);
         Long thumbnailAttachmentId = attachmentService.syncPostAttachments(
@@ -138,24 +144,50 @@ public class PostService {
     }
 
     private PostListResponse toPostListResponse(Post post, Long currentUserId) {
+        boolean mine = isMine(post, currentUserId);
+        boolean anonymous = isAnonymousBoard(post);
         return PostListResponse.from(
                 post,
                 commentRepository.countByPost_PostId(post.getPostId()),
                 postLikeRepository.countByPost(post),
-                isLikedBy(post, currentUserId));
+                isLikedBy(post, currentUserId),
+                resolveDisplayName(post, anonymous),
+                anonymous,
+                mine);
     }
 
     private PostDetailResponse toPostDetailResponse(Post post, Long currentUserId) {
+        boolean mine = isMine(post, currentUserId);
+        boolean anonymous = isAnonymousBoard(post);
         return PostDetailResponse.from(
                 post,
                 commentRepository.countByPost_PostId(post.getPostId()),
                 postLikeRepository.countByPost(post),
-                isLikedBy(post, currentUserId));
+                isLikedBy(post, currentUserId),
+                resolveDisplayName(post, anonymous),
+                anonymous,
+                mine);
     }
 
     private boolean isLikedBy(Post post, Long currentUserId) {
         return currentUserId != null
                 && postLikeRepository.existsByUser_IdAndPost_PostId(currentUserId, post.getPostId());
+    }
+
+    private boolean isMine(Post post, Long currentUserId) {
+        return currentUserId != null && currentUserId.equals(post.getUser().getId());
+    }
+
+    private boolean isAnonymousBoard(Post post) {
+        return post.getBoard().getType() == BoardType.ANONYMOUS;
+    }
+
+    private String resolveDisplayName(Post post, boolean anonymous) {
+        if (anonymous) {
+            return anonymousProfileService.getDisplayName(post.getBoard(), post.getUser());
+        }
+        String nickname = post.getUser().getNickname();
+        return (nickname != null && !nickname.isBlank()) ? nickname : post.getUser().getName();
     }
 
     private void saveHistory(Post post, User actor, ContentHistoryAction action, String reason) {

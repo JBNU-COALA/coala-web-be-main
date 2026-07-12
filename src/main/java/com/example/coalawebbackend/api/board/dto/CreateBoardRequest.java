@@ -20,7 +20,7 @@ public class CreateBoardRequest {
     private String boardName;
 
     @NotBlank(message = "게시판 타입은 필수입니다.")
-    @Pattern(regexp = "NORMAL|RECRUIT", message = "게시판 타입은 NORMAL 또는 RECRUIT만 가능합니다.")
+    @Pattern(regexp = "NORMAL|RECRUIT|ANONYMOUS", message = "게시판 타입은 NORMAL, RECRUIT, ANONYMOUS만 가능합니다.")
     private String boardType;
 
     @Size(max = 255, message = "설명은 255자 이내여야 합니다.")

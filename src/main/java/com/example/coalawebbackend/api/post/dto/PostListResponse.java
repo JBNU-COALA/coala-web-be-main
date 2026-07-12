@@ -16,8 +16,10 @@ public class PostListResponse {
     private Long postId;
     private Long boardId;
     private String boardName;
-    private Long userId;
-    private String authorName;     // 작성자 표시명 (nickname 우선, 없으면 name)
+    private Long userId;           // 익명 게시판에서는 본인 글이 아닌 경우 null
+    private String authorName;     // 작성자 표시명 (익명 게시판이면 익명 프로필 표시명)
+    private boolean anonymous;
+    private boolean mine;
     private String title;
     private String content;
     private PostStatus status;
@@ -31,26 +33,23 @@ public class PostListResponse {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    public static PostListResponse from(Post post) {
-        return from(post, 0, 0);
-    }
-
-    public static PostListResponse from(Post post, long commentCount, long likeCount) {
-        return from(post, commentCount, likeCount, false);
-    }
-
-    public static PostListResponse from(Post post, long commentCount, long likeCount, boolean likedByMe) {
-        String nickname = post.getUser().getNickname();
-        String displayName = (nickname != null && !nickname.isBlank())
-                ? nickname
-                : post.getUser().getName();
-
+    public static PostListResponse from(
+            Post post,
+            long commentCount,
+            long likeCount,
+            boolean likedByMe,
+            String displayName,
+            boolean anonymous,
+            boolean mine
+    ) {
         return PostListResponse.builder()
                 .postId(post.getPostId())
                 .boardId(post.getBoard().getBoardId())
                 .boardName(post.getBoard().getName())
-                .userId(post.getUser().getId())
+                .userId(anonymous && !mine ? null : post.getUser().getId())
                 .authorName(displayName)
+                .anonymous(anonymous)
+                .mine(mine)
                 .title(post.getTitle())
                 .content(post.getContent())
                 .status(post.getStatus())

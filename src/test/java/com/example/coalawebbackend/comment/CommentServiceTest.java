@@ -18,6 +18,8 @@ import com.example.coalawebbackend.api.comment.dto.UpdateCommentResponse;
 import com.example.coalawebbackend.api.notification.service.NotificationService;
 import com.example.coalawebbackend.common.enums.ErrorCode;
 import com.example.coalawebbackend.common.exception.CustomException;
+import com.example.coalawebbackend.domain.anonymous.service.AnonymousProfileService;
+import com.example.coalawebbackend.domain.board.entity.Board;
 import com.example.coalawebbackend.domain.comment.entity.Comment;
 import com.example.coalawebbackend.domain.comment.entity.CommentStatus;
 import com.example.coalawebbackend.domain.comment.repository.CommentRepository;
@@ -61,6 +63,9 @@ class CommentServiceTest {
 
     @Mock
     private NotificationService notificationService;
+
+    @Mock
+    private AnonymousProfileService anonymousProfileService;
 
     @Test
     @DisplayName("댓글 생성 성공")
@@ -116,6 +121,7 @@ class CommentServiceTest {
         // given
         Long postId = 1L;
         Post post = mock(Post.class);
+        Board board = mock(Board.class);
         User user = mock(User.class);
         Comment comment = Comment.create(post, user, "테스트 댓글");
         List<CommentStatus> visibleStatuses = List.of(
@@ -123,6 +129,7 @@ class CommentServiceTest {
                 CommentStatus.DELETED,
                 CommentStatus.ADMIN_DELETED);
 
+        given(post.getBoard()).willReturn(board);
         given(commentRepository.findVisibleParents(postId, visibleStatuses))
                 .willReturn(List.of(comment));
 

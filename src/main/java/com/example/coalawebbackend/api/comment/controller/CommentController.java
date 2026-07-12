@@ -61,20 +61,22 @@ public class CommentController implements CommentControllerSpec{
 
     @GetMapping
     public ResponseEntity<List<CommentResponse>> getComments(
-            @PathVariable Long postId
+            @PathVariable Long postId,
+            @AuthenticationPrincipal String userId
     ) {
         return ResponseEntity.ok(
-                commentFacade.getComments(postId)
+                commentFacade.getComments(postId, userId)
         );
     }
 
     @GetMapping("/{commentId}/replies")
     public ResponseEntity<List<CommentResponse>> getReplies(
             @PathVariable Long postId,
-            @PathVariable Long commentId
+            @PathVariable Long commentId,
+            @AuthenticationPrincipal String userId
     ) {
         return ResponseEntity.ok(
-                commentFacade.getReplies(postId, commentId)
+                commentFacade.getReplies(postId, commentId, userId)
         );
     }
 

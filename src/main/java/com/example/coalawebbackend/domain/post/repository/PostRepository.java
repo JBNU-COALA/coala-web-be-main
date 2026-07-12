@@ -2,6 +2,7 @@ package com.example.coalawebbackend.domain.post.repository;
 
 import com.example.coalawebbackend.domain.post.entity.Post;
 import com.example.coalawebbackend.domain.post.entity.PostStatus;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -22,6 +23,13 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     @Modifying(clearAutomatically = true)
     @Query("UPDATE Post p SET p.viewCount = p.viewCount + 1 WHERE p.postId = :postId")
     void increaseViewCount(@Param("postId") Long postId);
+
+    @Modifying
+    @Query("UPDATE Post p SET p.createdAt = :createdAt, p.updatedAt = :updatedAt WHERE p.postId = :postId")
+    void backdateTimestamps(
+            @Param("postId") Long postId,
+            @Param("createdAt") LocalDateTime createdAt,
+            @Param("updatedAt") LocalDateTime updatedAt);
 
     @Query("""
             SELECT CASE WHEN COUNT(p) > 0 THEN true ELSE false END

@@ -8,6 +8,8 @@ import com.example.coalawebbackend.api.comment.dto.UpdateCommentResponse;
 import com.example.coalawebbackend.api.notification.service.NotificationService;
 import com.example.coalawebbackend.common.enums.ErrorCode;
 import com.example.coalawebbackend.common.exception.CustomException;
+import com.example.coalawebbackend.domain.anonymous.service.AnonymousProfileService;
+import com.example.coalawebbackend.domain.board.entity.BoardType;
 import com.example.coalawebbackend.domain.comment.entity.Comment;
 import com.example.coalawebbackend.domain.comment.entity.CommentStatus;
 import com.example.coalawebbackend.domain.comment.repository.CommentRepository;
@@ -35,6 +37,7 @@ public class CommentService {
     private final PermissionService permissionService;
     private final ContentSafetyService contentSafetyService;
     private final NotificationService notificationService;
+    private final AnonymousProfileService anonymousProfileService;
     private static final List<CommentStatus> PUBLIC_COMMENT_STATUSES = List.of(
             CommentStatus.ACTIVE,
             CommentStatus.DELETED,
@@ -66,19 +69,41 @@ public class CommentService {
     }
 
     public List<CommentResponse> getComments(Long postId) {
+        return getComments(postId, null);
+    }
+
+    public List<CommentResponse> getComments(Long postId, Long currentUserId) {
         return commentRepository
                 .findVisibleParents(postId, PUBLIC_COMMENT_STATUSES)
                 .stream()
-                .map(comment -> CommentResponse.from(comment, getReplies(postId, comment.getId())))
+                .map(comment -> toCommentResponse(comment, getReplies(postId, comment.getId(), currentUserId), currentUserId))
                 .toList();
     }
 
     public List<CommentResponse> getReplies(Long postId, Long parentCommentId) {
+        return getReplies(postId, parentCommentId, null);
+    }
+
+    public List<CommentResponse> getReplies(Long postId, Long parentCommentId, Long currentUserId) {
         return commentRepository
                 .findVisibleReplies(postId, parentCommentId, PUBLIC_COMMENT_STATUSES)
                 .stream()
-                .map(CommentResponse::from)
+                .map(comment -> toCommentResponse(comment, List.of(), currentUserId))
                 .toList();
+    }
+
+    private CommentResponse toCommentResponse(Comment comment, List<CommentResponse> replies, Long currentUserId) {
+        boolean anonymous = comment.getPost().getBoard().getType() == BoardType.ANONYMOUS;
+        boolean mine = currentUserId != null && currentUserId.equals(comment.getUser().getId());
+        String displayName = anonymous
+                ? anonymousProfileService.getDisplayName(comment.getPost().getBoard(), comment.getUser())
+                : resolveRealName(comment);
+        return CommentResponse.from(comment, replies, displayName, anonymous, mine);
+    }
+
+    private String resolveRealName(Comment comment) {
+        String nickname = comment.getUser().getNickname();
+        return (nickname != null && !nickname.isBlank()) ? nickname : comment.getUser().getName();
     }
 
     @Transactional
