@@ -206,9 +206,9 @@ class ApiSmokeTest {
         String accessToken = readJson(refreshResult).get("accessToken").asText();
 
         mockMvc.perform(get("/api/users")
-                        .header("Authorization", bearer(accessToken)))
+                .header("Authorization", bearer(accessToken)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(3));
+                .andExpect(jsonPath("$.length()").value(6));
 
         mockMvc.perform(get("/api/users/{userId}", smokeUserId)
                         .header("Authorization", bearer(accessToken)))
@@ -217,9 +217,9 @@ class ApiSmokeTest {
                 .andExpect(jsonPath("$.isMe").value(true));
 
         mockMvc.perform(get("/api/admin/users")
-                        .header("Authorization", bearer(accessToken)))
+                .header("Authorization", bearer(accessToken)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(3));
+                .andExpect(jsonPath("$.length()").value(6));
 
         mockMvc.perform(patch("/api/admin/users/{userId}/role", smokeUserId)
                         .header("Authorization", bearer(accessToken))
