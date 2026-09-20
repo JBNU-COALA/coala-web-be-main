@@ -62,6 +62,9 @@ public class RecruitApplication extends BaseEntity {
         this.role = role;
         this.body = body;
         this.submittedAt = LocalDateTime.now();
-        this.status = "submitted";
+    }
+
+    public void decide(String status) {
+        this.status = status;
     }
 }

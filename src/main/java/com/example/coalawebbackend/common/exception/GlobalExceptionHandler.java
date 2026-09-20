@@ -13,6 +13,11 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler(org.springframework.dao.OptimisticLockingFailureException.class)
+    public ResponseEntity<ApiResponse<ApiResult>> handleConcurrentEdit(Exception e) {
+        return ApiResponse.onFailure(ErrorCode.POST_NOT_EDITABLE);
+    }
+
     @ExceptionHandler(CustomException.class)
     public ResponseEntity<ApiResponse<ApiResult>> handleApiException(CustomException e) {
         return ApiResponse.onFailure(e.getErrorCode());

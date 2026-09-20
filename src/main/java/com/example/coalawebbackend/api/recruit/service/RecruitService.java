@@ -48,6 +48,7 @@ public class RecruitService {
     private final UserService userService;
     private final PermissionService permissionService;
     private final NotificationService notificationService;
+    private final com.example.coalawebbackend.domain.study.StudyGroupRepository studyGroupRepository;
 
     public List<RecruitPostResponse> getRecruits(String category, String status, String query, String sort) {
         List<RecruitPost> recruits = StringUtils.hasText(category) && !"all".equalsIgnoreCase(category)
@@ -118,10 +119,19 @@ public class RecruitService {
 
     @Transactional
     public RecruitPostResponse updateRecruit(User actor, String recruitId, RecruitPostRequest request) {
-        RecruitPost recruit = getRecruitEntity(recruitId);
+        RecruitPost recruit = recruitPostRepository.findForUpdate(recruitId)
+                .orElseThrow(() -> new CustomException(ErrorCode.RESOURCE_NOT_FOUND));
         assertCanManageRecruit(actor, recruit);
         String previousStatus = recruit.getStatus();
         List<RecruitPostRequest.RecruitRoleRequest> roleRequests = request.roles();
+        List<RecruitApplication> accepted = recruitApplicationRepository.findByRecruitPost_IdOrderBySubmittedAtDesc(recruitId)
+                .stream().filter(application -> "accepted".equals(application.getStatus())).toList();
+        for (RecruitApplication application : accepted) {
+            long count = accepted.stream().filter(entry -> entry.getRole().equals(application.getRole())).count();
+            if (roleRequests.stream().noneMatch(role -> role.label().trim().equals(application.getRole()) && role.max() >= count)) {
+                throw new CustomException(ErrorCode.POST_NOT_EDITABLE);
+            }
+        }
         int maxMembers = roleRequests.stream().mapToInt(role -> Math.max(role.max(), 1)).sum();
         recruit.update(
                 request.title().trim(),
@@ -141,7 +151,7 @@ public class RecruitService {
             RecruitPostRequest.RecruitRoleRequest role = roleRequests.get(i);
             recruit.addRole(RecruitRole.builder()
                     .label(role.label().trim())
-                    .current(0)
+                    .current((int) accepted.stream().filter(application -> application.getRole().equals(role.label().trim())).count())
                     .max(Math.max(role.max(), 1))
                     .sortOrder(i)
                     .build());
@@ -179,13 +189,19 @@ public class RecruitService {
 
     @Transactional
     public RecruitApplicationResponse apply(String recruitId, RecruitApplicationRequest request, String userId) {
-        RecruitPost recruit = getRecruitEntity(recruitId);
+        RecruitPost recruit = recruitPostRepository.findForUpdate(recruitId)
+                .orElseThrow(() -> new CustomException(ErrorCode.RESOURCE_NOT_FOUND));
         User user = userService.findById(userId);
+        if (!user.isVerified()) throw new CustomException(ErrorCode.EMAIL_NOT_VERIFIED);
+        if (!Set.of("open", "closing-soon").contains(recruit.getStatus())) throw new CustomException(ErrorCode.POST_NOT_EDITABLE);
+        if (recruit.getRoles().stream().noneMatch(role -> role.getLabel().equals(request.role()))) throw new CustomException(ErrorCode.VALIDATION_FAILED);
         RecruitApplication existingApplication = recruitApplicationRepository
                 .findFirstByRecruitPost_IdAndUser_IdOrderBySubmittedAtDesc(recruitId, user.getId())
                 .orElse(null);
         if (existingApplication != null) {
+            if ("accepted".equals(existingApplication.getStatus())) throw new CustomException(ErrorCode.POST_NOT_EDITABLE);
             existingApplication.update(request.role(), request.body());
+            existingApplication.decide("submitted");
             return toApplicationResponse(existingApplication);
         }
 
@@ -211,7 +227,7 @@ public class RecruitService {
     }
 
     public List<RecruitApplicationResponse> getRecruitApplications(User actor, String recruitId) {
-        permissionService.assertModerator(actor);
+        permissionService.assertCanManageRecruit(actor, getRecruitEntity(recruitId));
         return recruitApplicationRepository.findByRecruitPost_IdOrderBySubmittedAtDesc(recruitId)
                 .stream()
                 .map(this::toApplicationResponse)
@@ -305,7 +321,9 @@ public class RecruitService {
                 application.getRole(),
                 application.getBody(),
                 application.getSubmittedAt().toString(),
-                application.getStatus()
+                application.getStatus(),
+                application.getUser() == null ? null : application.getUser().getId(),
+                application.getUser() == null ? "탈퇴한 사용자" : displayName(application.getUser())
         );
     }
 
@@ -327,8 +345,10 @@ public class RecruitService {
 
     @Transactional
     public void deleteRecruit(User actor, String recruitId) {
-        RecruitPost recruit = getRecruitEntity(recruitId);
+        RecruitPost recruit = recruitPostRepository.findForUpdate(recruitId)
+                .orElseThrow(() -> new CustomException(ErrorCode.RESOURCE_NOT_FOUND));
         assertCanManageRecruit(actor, recruit);
+        if (studyGroupRepository.existsByRecruit_Id(recruitId)) throw new CustomException(ErrorCode.POST_NOT_EDITABLE);
         recruitApplicationRepository.deleteByRecruitPost_Id(recruitId);
         recruitCommentRepository.deleteByRecruitPost_Id(recruitId);
         recruitBookmarkRepository.deleteByRecruitPost_Id(recruitId);
@@ -336,12 +356,32 @@ public class RecruitService {
     }
 
     private void assertCanManageRecruit(User actor, RecruitPost recruit) {
-        boolean isAuthor = actor != null
-                && recruit.getAuthor() != null
-                && actor.getId().equals(recruit.getAuthor().getId());
-        if (!isAuthor && !permissionService.canModerate(actor)) {
-            throw new CustomException(ErrorCode.ACCESS_DENIED);
+        permissionService.assertCanManageRecruit(actor, recruit);
+    }
+
+    @Transactional
+    public RecruitApplicationResponse decideApplication(User actor, String recruitId, Long applicationId, String status) {
+        RecruitPost recruit = recruitPostRepository.findForUpdate(recruitId)
+                .orElseThrow(() -> new CustomException(ErrorCode.RESOURCE_NOT_FOUND));
+        assertCanManageRecruit(actor, recruit);
+        if (!actor.isVerified()) throw new CustomException(ErrorCode.EMAIL_NOT_VERIFIED);
+        if (!Set.of("accepted", "rejected", "submitted").contains(status)) throw new CustomException(ErrorCode.VALIDATION_FAILED);
+        RecruitApplication application = recruitApplicationRepository.findById(applicationId)
+                .filter(value -> value.getRecruitPost().getId().equals(recruitId))
+                .orElseThrow(() -> new CustomException(ErrorCode.RESOURCE_NOT_FOUND));
+        List<RecruitApplication> applications = recruitApplicationRepository.findByRecruitPost_IdOrderBySubmittedAtDesc(recruitId);
+        if ("accepted".equals(status) && !"accepted".equals(application.getStatus())) {
+            RecruitRole role = recruit.getRoles().stream().filter(value -> value.getLabel().equals(application.getRole()))
+                    .findFirst().orElseThrow(() -> new CustomException(ErrorCode.VALIDATION_FAILED));
+            long current = applications.stream().filter(value -> "accepted".equals(value.getStatus()) && value.getRole().equals(role.getLabel())).count();
+            if (current >= role.getMax()) throw new CustomException(ErrorCode.POST_NOT_EDITABLE);
         }
+        application.decide(status);
+        for (RecruitRole role : recruit.getRoles()) {
+            role.updateCurrent((int) applications.stream().filter(value -> "accepted".equals(value.getStatus()) && value.getRole().equals(role.getLabel())).count());
+        }
+        recruit.updateCurrentMembers((int) applications.stream().filter(value -> "accepted".equals(value.getStatus())).count());
+        return toApplicationResponse(application);
     }
 
     private List<String> normalizeTags(List<String> tags) {

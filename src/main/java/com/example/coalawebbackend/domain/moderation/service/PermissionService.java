@@ -6,6 +6,7 @@ import com.example.coalawebbackend.domain.board.entity.Board;
 import com.example.coalawebbackend.domain.comment.entity.Comment;
 import com.example.coalawebbackend.domain.info.entity.InfoArticle;
 import com.example.coalawebbackend.domain.post.entity.Post;
+import com.example.coalawebbackend.domain.recruit.entity.RecruitPost;
 import com.example.coalawebbackend.domain.user.entity.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -83,6 +84,14 @@ public class PermissionService {
         if (!canModerate(user)) {
             throw new CustomException(ErrorCode.ACCESS_DENIED);
         }
+    }
+
+    public boolean canManageRecruit(User actor, RecruitPost recruit) {
+        return recruit != null && (isOwner(actor, recruit.getAuthor()) || canModerate(actor));
+    }
+
+    public void assertCanManageRecruit(User actor, RecruitPost recruit) {
+        if (!canManageRecruit(actor, recruit)) throw new CustomException(ErrorCode.ACCESS_DENIED);
     }
 
     public boolean canModerate(User user) {

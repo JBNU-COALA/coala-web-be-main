@@ -35,6 +35,16 @@ public class RecruitController {
     private final RecruitService recruitService;
     private final UserService userService;
 
+    public record ApplicationDecision(@jakarta.validation.constraints.Pattern(regexp = "accepted|rejected|submitted")
+                                      @jakarta.validation.constraints.NotNull String status) {}
+
+    @PatchMapping("/{recruitId}/applications/{applicationId}")
+    public ResponseEntity<RecruitApplicationResponse> decideApplication(
+            @PathVariable String recruitId, @PathVariable Long applicationId,
+            @Valid @RequestBody ApplicationDecision request, @AuthenticationPrincipal String userId) {
+        return ResponseEntity.ok(recruitService.decideApplication(userService.findById(userId), recruitId, applicationId, request.status()));
+    }
+
     @GetMapping
     @Operation(summary = "모집 공고 목록 조회", description = "모집 공고 목록을 필터링해서 조회합니다.")
     public ResponseEntity<List<RecruitPostResponse>> getRecruits(

@@ -37,6 +37,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class RecruitPost extends BaseEntity {
 
+    public void updateCurrentMembers(int count) { this.currentMembers = count; }
+
     @Id
     @Column(name = "recruit_id", length = 80)
     private String id;

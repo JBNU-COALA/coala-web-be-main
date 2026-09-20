@@ -7,6 +7,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface RecruitApplicationRepository extends JpaRepository<RecruitApplication, Long> {
 
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"user", "recruitPost"})
+    List<RecruitApplication> findByRecruitPost_IdInAndStatus(List<String> recruitIds, String status);
+
     List<RecruitApplication> findByUser_IdOrderBySubmittedAtDesc(Long userId);
 
     Optional<RecruitApplication> findFirstByRecruitPost_IdAndUser_IdOrderBySubmittedAtDesc(String recruitId, Long userId);

@@ -7,6 +7,8 @@ public record RecruitApplicationResponse(
         String role,
         String body,
         String submittedAt,
-        String status
+        String status,
+        Long userId,
+        String userName
 ) {
 }

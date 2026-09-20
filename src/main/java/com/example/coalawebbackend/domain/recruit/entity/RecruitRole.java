@@ -47,4 +47,6 @@ public class RecruitRole {
     public void attachTo(RecruitPost recruitPost) {
         this.recruitPost = recruitPost;
     }
+
+    public void updateCurrent(int count) { this.current = count; }
 }
