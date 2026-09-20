@@ -192,9 +192,9 @@ class StudyIntegrationTest {
                 .isInstanceOf(CustomException.class);
     }
 
-    @Test void standaloneRejectsForgedAttendanceAndUnverifiedAuthor() {
+    @Test void standaloneRejectsMissingParticipantAndUnverifiedAuthor() {
         StudyDtos.RecordRequest forged = new StudyDtos.RecordRequest(null, "Notes", LocalDate.now(), "Notes",
-                List.of(new StudyDtos.AttendanceRequest(outsider.getId(), "present")), null);
+                List.of(new StudyDtos.AttendanceRequest(Long.MAX_VALUE, "present")), null);
         assertThatThrownBy(() -> service.createRecord(forged, owner)).isInstanceOf(CustomException.class);
         assertThatThrownBy(() -> service.createRecord(new StudyDtos.RecordRequest(null, "Notes", LocalDate.now(), "Notes", List.of(), null),
                 user("Unverified", false))).isInstanceOf(CustomException.class);
@@ -274,8 +274,57 @@ class StudyIntegrationTest {
     @Test void rejectsUnverifiedAndInvalidRosters() {
         assertThatThrownBy(() -> service.listGroups(user("Unverified", false))).isInstanceOf(CustomException.class);
         StudyDtos.Group group = group();
-        assertThatThrownBy(() -> service.createRecord(request(group, null, outsider.getId()), owner)).isInstanceOf(CustomException.class);
+        assertThatThrownBy(() -> service.createRecord(request(group, null, user("Unverified participant", false).getId()), owner)).isInstanceOf(CustomException.class);
         assertThatThrownBy(() -> service.createRecord(request(group, null, owner.getId(), owner.getId()), owner)).isInstanceOf(CustomException.class);
+    }
+
+    @Test void authorCanAddAndRemoveStandaloneParticipantsWithoutGivingEditPermission() {
+        var created = service.createRecord(new StudyDtos.RecordRequest(null, "Meetup", LocalDate.now(), "Notes",
+                List.of(new StudyDtos.AttendanceRequest(member.getId(), "present")), null), owner);
+        em.flush(); em.clear();
+        assertThat(service.getRecord(created.id(), member).attendance()).extracting(StudyDtos.Attendance::name).containsExactly(member.getName());
+        assertThat(service.getRecord(created.id(), member).canManage()).isFalse();
+        assertThat(service.listRecords(LocalDate.now(), LocalDate.now(), null, member.getId(), member)).hasSize(1);
+        var changed = new StudyDtos.RecordRequest(null, "Meetup", LocalDate.now(), "Notes",
+                List.of(new StudyDtos.AttendanceRequest(outsider.getId(), "late")), created.version());
+        assertThatThrownBy(() -> service.updateRecord(created.id(), changed, member)).isInstanceOf(CustomException.class);
+        var updated = service.updateRecord(created.id(), changed, owner);
+        em.flush(); em.clear();
+        assertThat(service.getRecord(created.id(), owner).attendance()).extracting(StudyDtos.Attendance::userId).containsExactly(outsider.getId().toString());
+        assertThat(service.listRecords(LocalDate.now(), LocalDate.now(), null, member.getId(), member)).isEmpty();
+        assertThat(service.listRecords(LocalDate.now(), LocalDate.now(), null, outsider.getId(), outsider)).hasSize(1);
+        assertThatThrownBy(() -> service.updateRecord(created.id(), changed, owner)).isInstanceOf(CustomException.class);
+        service.deleteRecord(updated.id(), updated.version(), owner);
+    }
+
+    @Test void groupActivityAllowsGuestsWithoutChangingRecruitmentMembership() {
+        var group = group();
+        var created = service.createRecord(request(group, null, owner.getId(), outsider.getId()), owner);
+        assertThat(created.attendance()).extracting(StudyDtos.Attendance::userId).contains(outsider.getId().toString());
+        assertThat(service.listGroups(owner).getFirst().members()).extracting(StudyDtos.Member::userId).doesNotContain(outsider.getId().toString());
+        var updated = service.updateRecord(created.id(), request(group, created.version(), outsider.getId(), member.getId()), owner);
+        assertThat(updated.attendance()).extracting(StudyDtos.Attendance::userId).containsExactly(outsider.getId().toString(), member.getId().toString());
+        assertThat(service.listGroups(owner).getFirst().members()).hasSize(1);
+    }
+
+    @Test void participantSearchIsVerifiedBoundedAndDoesNotExposePrivateAccountFields() throws Exception {
+        user("Hidden candidate", false);
+        assertThat(service.searchMembers("Hidden", owner)).isEmpty();
+        assertThat(service.searchMembers(member.getGithubId(), owner)).extracting(StudyDtos.MemberOption::userId).containsExactly(member.getId().toString());
+        for (int i = 0; i < 23; i++) user("Search candidate " + i, true);
+        assertThat(service.searchMembers("Search candidate", owner)).hasSize(20);
+        assertThatThrownBy(() -> service.searchMembers("x".repeat(81), owner)).isInstanceOf(CustomException.class);
+        assertThatThrownBy(() -> service.searchMembers("", user("Unverified", false))).isInstanceOf(CustomException.class);
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/study/members"))
+            .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().is4xxClientError());
+        String token = tokens.createToken(owner.getId().toString(), java.util.Map.of("role", "ROLE_USER"), 60000);
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/study/members").param("query", member.getGithubId())
+                .header("Authorization", "Bearer " + token))
+            .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isOk())
+            .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$[0].userId").value(member.getId().toString()))
+            .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$[0].email").doesNotExist())
+            .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$[0].studentId").doesNotExist())
+            .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$[0].password").doesNotExist());
     }
 
     @Test void pastRosterSurvivesMembershipChangeAndStaleEditsFail() {

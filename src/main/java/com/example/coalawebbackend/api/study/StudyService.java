@@ -10,10 +10,13 @@ import com.example.coalawebbackend.domain.recruit.repository.RecruitApplicationR
 import com.example.coalawebbackend.domain.recruit.repository.RecruitPostRepository;
 import com.example.coalawebbackend.domain.study.*;
 import com.example.coalawebbackend.domain.user.entity.User;
+import com.example.coalawebbackend.domain.user.repository.UserRepository;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +31,7 @@ public class StudyService {
     private final PermissionService permissions;
     private final SanctionPolicyService sanctions;
     private final AttachmentService attachments;
+    private final UserRepository users;
 
     private void assertVerified(User actor) {
         if (actor == null) throw new CustomException(ErrorCode.ACCESS_DENIED);
@@ -38,6 +42,15 @@ public class StudyService {
         assertVerified(actor);
         permissions.assertCanManageRecruit(actor, group.getRecruit());
         sanctions.assertCanWritePost(actor);
+    }
+
+    public List<StudyDtos.MemberOption> searchMembers(String query, User actor) {
+        assertVerified(actor);
+        String term = query == null ? "" : query.trim();
+        if (term.length() > 80) throw new CustomException(ErrorCode.VALIDATION_FAILED);
+        return users.searchActivityMembers(term, PageRequest.of(0, 20, Sort.by("name").ascending().and(Sort.by("id"))))
+                .stream().map(user -> new StudyDtos.MemberOption(user.getId().toString(), user.getName(), user.getGithubId(), user.getDepartment()))
+                .toList();
     }
 
     public List<StudyDtos.Group> listGroups(User actor) {
@@ -94,7 +107,7 @@ public class StudyService {
         sanctions.assertCanWritePost(actor);
         StudyGroup group = requestedGroup(request.groupId(), actor);
         StudyRecord record = new StudyRecord(group, actor);
-        update(record, request, group == null ? List.of() : members(group.getRecruit()), actor);
+        update(record, request, actor);
         records.saveAndFlush(record);
         attachments.syncStudyPhotos(actor, record.getId(), request.attachmentIds());
         return toRecord(record, actor);
@@ -108,14 +121,11 @@ public class StudyService {
         Long currentGroupId = record.getGroup() == null ? null : record.getGroup().getId();
         if (currentGroupId != null && !currentGroupId.equals(request.groupId())) throw new CustomException(ErrorCode.VALIDATION_FAILED);
         if (request.version() == null || !request.version().equals(record.getVersion())) throw new CustomException(ErrorCode.POST_NOT_EDITABLE);
-        // Keep the original session roster even if recruitment membership later changes.
-        List<User> roster = record.getAttendance().stream().map(StudyAttendance::getUser).toList();
         if (currentGroupId == null && request.groupId() != null) {
             StudyGroup group = requestedGroup(request.groupId(), actor);
             record.attachGroup(group);
-            roster = members(group.getRecruit());
         }
-        update(record, request, roster, actor);
+        update(record, request, actor);
         records.saveAndFlush(record);
         attachments.syncStudyPhotos(actor, record.getId(), request.attachmentIds());
         return toRecord(record, actor);
@@ -150,12 +160,18 @@ public class StudyService {
         records.flush();
     }
 
-    private void update(StudyRecord record, StudyDtos.RecordRequest request, List<User> roster, User actor) {
-        Set<Long> expected = new HashSet<>(roster.stream().map(User::getId).toList());
+    private void update(StudyRecord record, StudyDtos.RecordRequest request, User actor) {
         List<Long> supplied = request.attendance().stream().map(StudyDtos.AttendanceRequest::userId).toList();
-        if (supplied.size() != expected.size() || !new HashSet<>(supplied).equals(expected)) throw new CustomException(ErrorCode.VALIDATION_FAILED);
+        Set<Long> unique = new HashSet<>(supplied);
+        if (supplied.size() > 200 || unique.size() != supplied.size() || unique.contains(null))
+            throw new CustomException(ErrorCode.VALIDATION_FAILED);
         Map<Long, User> byId = new HashMap<>();
-        roster.forEach(user -> byId.put(user.getId(), user));
+        users.findAllById(unique).forEach(user -> byId.put(user.getId(), user));
+        if (byId.size() != unique.size()) throw new CustomException(ErrorCode.VALIDATION_FAILED);
+        // Preserve historical participants; newly added members must be verified.
+        Set<Long> existing = new HashSet<>(record.getAttendance().stream().map(entry -> entry.getUser().getId()).toList());
+        if (byId.values().stream().anyMatch(user -> !user.isVerified() && !existing.contains(user.getId())))
+            throw new CustomException(ErrorCode.VALIDATION_FAILED);
         record.update(request.title(), request.date(), request.content(), request.attendance().stream()
                 .map(entry -> new StudyAttendance(byId.get(entry.userId()), entry.status())).toList(), actor);
     }

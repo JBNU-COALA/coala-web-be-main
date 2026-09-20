@@ -33,6 +33,12 @@ public class StudyController {
         return attachments.uploadStudyPhoto(actor, file);
     }
 
+    @GetMapping("/members")
+    public List<StudyDtos.MemberOption> members(@RequestParam(defaultValue = "") String query,
+                                               @AuthenticationPrincipal String userId) {
+        return service.searchMembers(query, users.findById(userId));
+    }
+
     @GetMapping("/groups")
     public List<StudyDtos.Group> groups(@AuthenticationPrincipal String userId) {
         return service.listGroups(users.findById(userId));

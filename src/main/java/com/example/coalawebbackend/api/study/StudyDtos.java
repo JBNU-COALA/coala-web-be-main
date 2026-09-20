@@ -7,6 +7,7 @@ import java.util.List;
 
 public final class StudyDtos {
     private StudyDtos() {}
+    public record MemberOption(String userId, String name, String githubId, String department) {}
     public record Member(String userId, String name) {}
     public record Group(String id, String recruitId, String name, List<Member> members, boolean canManage) {}
     public record Attendance(String userId, String name, String status) {}
