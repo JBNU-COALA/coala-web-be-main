@@ -23,10 +23,15 @@ jobs:
             sql_file="$(mktemp)"
             trap 'rm -f "$sql_file"' EXIT
             git show origin/main:scripts/sql/audit-known-seed-accounts.sql > "$sql_file"
+            for attempt in $(seq 1 30); do
+              if docker inspect -f '{{.State.Running}}' coala-web-be-main 2>/dev/null | grep -q true; then break; fi
+              sleep 5
+            done
             DB_URL="$(docker exec coala-web-be-main printenv DB_URL)"
             DB_USERNAME="$(docker exec coala-web-be-main printenv DB_USERNAME)"
             PGPASSWORD="$(docker exec coala-web-be-main printenv DB_PASSWORD)"
             export PGPASSWORD
             PSQL_URL="${DB_URL#jdbc:}"
+            PSQL_URL="${PSQL_URL%%\?*}"
             docker run --rm -i --network container:coala-web-be-main -e PGPASSWORD postgres:16-alpine \
               psql "$PSQL_URL" -U "$DB_USERNAME" -v ON_ERROR_STOP=1 < "$sql_file"
