@@ -1,5 +1,8 @@
 package com.example.coalawebbackend.api.study;
 
+import com.example.coalawebbackend.api.attachment.dto.AttachmentUploadResponse;
+import com.example.coalawebbackend.domain.attachment.service.AttachmentService;
+import com.example.coalawebbackend.domain.moderation.service.SanctionPolicyService;
 import com.example.coalawebbackend.domain.user.service.UserService;
 import jakarta.validation.Valid;
 import java.time.LocalDate;
@@ -9,6 +12,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequiredArgsConstructor
@@ -16,6 +20,18 @@ import org.springframework.web.bind.annotation.*;
 public class StudyController {
     private final StudyService service;
     private final UserService users;
+    private final AttachmentService attachments;
+    private final SanctionPolicyService sanctions;
+
+    @PostMapping("/photos")
+    @ResponseStatus(HttpStatus.CREATED)
+    public AttachmentUploadResponse uploadPhoto(
+            @RequestParam("file") MultipartFile file,
+            @AuthenticationPrincipal String userId) {
+        var actor = users.findById(userId);
+        sanctions.assertCanWritePost(actor);
+        return attachments.uploadStudyPhoto(actor, file);
+    }
 
     @GetMapping("/groups")
     public List<StudyDtos.Group> groups(@AuthenticationPrincipal String userId) {

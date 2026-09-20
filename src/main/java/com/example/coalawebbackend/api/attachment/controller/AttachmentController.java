@@ -49,11 +49,12 @@ public class AttachmentController {
     }
 
     @GetMapping("/{attachmentId}/download")
-    public ResponseEntity<?> download(@PathVariable Long attachmentId) {
-        AttachmentDownloadResponse response = attachmentService.getDownload(attachmentId);
+    public ResponseEntity<?> download(@PathVariable Long attachmentId, @AuthenticationPrincipal String userId) {
+        AttachmentDownloadResponse response = attachmentService.getDownload(attachmentId, userId == null || "anonymousUser".equals(userId) ? null : userService.findById(userId));
         String encodedName = URLEncoder.encode(response.originalName(), StandardCharsets.UTF_8)
                 .replace("+", "%20");
         return ResponseEntity.ok()
+                .header(HttpHeaders.CACHE_CONTROL, "private, no-store")
                 .contentType(MediaType.parseMediaType(response.contentType()))
                 .contentLength(response.fileSize())
                 .header(HttpHeaders.CONTENT_DISPOSITION,

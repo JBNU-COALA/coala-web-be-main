@@ -2,6 +2,7 @@ package com.example.coalawebbackend.api.study;
 
 import com.example.coalawebbackend.common.enums.ErrorCode;
 import com.example.coalawebbackend.common.exception.CustomException;
+import com.example.coalawebbackend.domain.attachment.service.AttachmentService;
 import com.example.coalawebbackend.domain.moderation.service.PermissionService;
 import com.example.coalawebbackend.domain.moderation.service.SanctionPolicyService;
 import com.example.coalawebbackend.domain.recruit.entity.RecruitPost;
@@ -26,6 +27,7 @@ public class StudyService {
     private final RecruitApplicationRepository applications;
     private final PermissionService permissions;
     private final SanctionPolicyService sanctions;
+    private final AttachmentService attachments;
 
     private void assertVerified(User actor) {
         if (actor == null) throw new CustomException(ErrorCode.ACCESS_DENIED);
@@ -93,7 +95,9 @@ public class StudyService {
         StudyGroup group = requestedGroup(request.groupId(), actor);
         StudyRecord record = new StudyRecord(group, actor);
         update(record, request, group == null ? List.of() : members(group.getRecruit()), actor);
-        return toRecord(records.saveAndFlush(record), actor);
+        records.saveAndFlush(record);
+        attachments.syncStudyPhotos(actor, record.getId(), request.attachmentIds());
+        return toRecord(record, actor);
     }
 
     @Transactional
@@ -112,7 +116,9 @@ public class StudyService {
             roster = members(group.getRecruit());
         }
         update(record, request, roster, actor);
-        return toRecord(records.saveAndFlush(record), actor);
+        records.saveAndFlush(record);
+        attachments.syncStudyPhotos(actor, record.getId(), request.attachmentIds());
+        return toRecord(record, actor);
     }
 
     private StudyGroup requestedGroup(Long id, User actor) {
@@ -139,6 +145,7 @@ public class StudyService {
         StudyRecord record = findRecord(id);
         assertManageRecord(actor, record);
         if (version == null || !version.equals(record.getVersion())) throw new CustomException(ErrorCode.POST_NOT_EDITABLE);
+        attachments.deleteStudyPhotos(actor, record.getId());
         records.delete(record);
         records.flush();
     }
@@ -179,6 +186,7 @@ public class StudyService {
     private StudyDtos.Record toRecord(StudyRecord record, User actor) {
         return new StudyDtos.Record(record.getId(), record.getGroup() == null ? null : record.getGroup().getId().toString(), record.getTitle(), record.getDate(), record.getContent(),
                 record.getAttendance().stream().map(entry -> new StudyDtos.Attendance(entry.getUser().getId().toString(), entry.getUser().getName(), entry.getStatus())).toList(),
-                record.getUpdatedAt().toString(), record.getVersion(), canManageRecord(actor, record), record.getAuthor().getId().toString());
+                record.getUpdatedAt().toString(), record.getVersion(), canManageRecord(actor, record), record.getAuthor().getId().toString(),
+                attachments.studyPhotos(record.getId()).stream().map(photo -> new StudyDtos.Photo(photo.getId(), photo.getOriginalName())).toList());
     }
 }

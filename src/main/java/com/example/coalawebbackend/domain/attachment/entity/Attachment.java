@@ -44,6 +44,9 @@ public class Attachment extends BaseEntity {
     @Column(name = "target_id")
     private Long targetId;
 
+    @Column(name = "study_record_id", length = 36)
+    private String studyRecordId;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "file_category", nullable = false, length = 30)
     private FileCategory fileCategory;
@@ -95,6 +98,15 @@ public class Attachment extends BaseEntity {
         this.displayOrder = displayOrder;
         this.representative = representative;
         this.status = AttachmentStatus.ACTIVE;
+    }
+
+    public void reserveForStudy() {
+        this.targetType = AttachmentTargetType.STUDY_RECORD;
+    }
+
+    public void activateForStudy(String recordId, int order) {
+        activate(AttachmentTargetType.STUDY_RECORD, null, order, false);
+        this.studyRecordId = recordId;
     }
 
     public void markDeleted(User actor) {

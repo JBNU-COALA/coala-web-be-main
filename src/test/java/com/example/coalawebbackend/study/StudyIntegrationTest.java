@@ -44,6 +44,10 @@ class StudyIntegrationTest {
     @Autowired com.example.coalawebbackend.common.jwt.JwtTokenProvider tokens;
     @org.springframework.test.context.bean.override.mockito.MockitoBean
     com.example.coalawebbackend.common.jwt.LogoutTokenStore logoutTokens;
+    @Autowired com.example.coalawebbackend.domain.attachment.service.AttachmentService attachments;
+    @Autowired com.example.coalawebbackend.domain.attachment.repository.AttachmentRepository attachmentRows;
+    @org.springframework.test.context.bean.override.mockito.MockitoBean
+    com.example.coalawebbackend.infra.storage.FileStorage storage;
     User owner;
     User member;
     User outsider;
@@ -83,6 +87,75 @@ class StudyIntegrationTest {
     StudyDtos.RecordRequest request(StudyDtos.Group group, Long version, Long... ids) {
         return new StudyDtos.RecordRequest(Long.valueOf(group.id()), "Week 1", LocalDate.now(), "# Notes\nLearned React",
             java.util.Arrays.stream(ids).map(id -> new StudyDtos.AttendanceRequest(id, "present")).toList(), version);
+    }
+
+    com.example.coalawebbackend.domain.attachment.entity.Attachment photo(User uploader) {
+        return attachmentRows.saveAndFlush(com.example.coalawebbackend.domain.attachment.entity.Attachment.builder()
+            .uploader(uploader).targetType(com.example.coalawebbackend.domain.attachment.entity.AttachmentTargetType.STUDY_RECORD)
+            .fileCategory(com.example.coalawebbackend.domain.attachment.entity.FileCategory.IMAGE)
+            .originalName("proof.png").storedName(UUID.randomUUID() + ".png").storagePath("test/proof.png")
+            .contentType("image/png").fileSize(10).build());
+    }
+
+    @Test void studyPhotosArePrivateAndSurviveLegacyEditsThenDeleteWithRecord() throws Exception {
+        var photo = photo(owner);
+        org.mockito.Mockito.when(storage.exists(org.mockito.ArgumentMatchers.anyString())).thenReturn(true);
+        org.mockito.Mockito.when(storage.load(org.mockito.ArgumentMatchers.anyString()))
+            .thenReturn(new org.springframework.core.io.ByteArrayResource(new byte[10]));
+        assertThatThrownBy(() -> attachments.getDownload(photo.getId())).isInstanceOf(CustomException.class);
+        assertThatThrownBy(() -> attachments.getDownload(photo.getId(), outsider)).isInstanceOf(CustomException.class);
+        assertThat(attachments.getDownload(photo.getId(), owner).fileSize()).isEqualTo(10);
+        var created = service.createRecord(new StudyDtos.RecordRequest(null, "Photos", LocalDate.now(), "Evidence", List.of(), null, List.of(photo.getId())), owner);
+        assertThat(created.photos()).extracting(StudyDtos.Photo::attachmentId).containsExactly(photo.getId());
+        assertThat(photo.isActive()).isTrue();
+        assertThat(attachments.getDownload(photo.getId(), member).fileSize()).isEqualTo(10);
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/attachments/" + photo.getId() + "/download"))
+            .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isForbidden());
+        String token = tokens.createToken(member.getId().toString(), java.util.Map.of("role", "ROLE_USER"), 60000);
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/attachments/" + photo.getId() + "/download")
+                .header("Authorization", "Bearer " + token))
+            .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isOk())
+            .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header().string("Cache-Control", "private, no-store"));
+        var updated = service.updateRecord(created.id(), new StudyDtos.RecordRequest(null, "Edited", LocalDate.now(), "Evidence", List.of(), created.version()), owner);
+        assertThat(updated.photos()).hasSize(1);
+        service.deleteRecord(updated.id(), updated.version(), owner);
+        assertThatThrownBy(() -> attachments.getDownload(photo.getId(), owner)).isInstanceOf(CustomException.class);
+    }
+
+    @Test void studyPhotoRemovalAndOwnershipAreEnforced() {
+        var own = photo(owner);
+        var other = photo(outsider);
+        assertThatThrownBy(() -> service.createRecord(new StudyDtos.RecordRequest(null, "Photos", LocalDate.now(), "Evidence", List.of(), null, List.of(other.getId())), owner))
+            .isInstanceOf(CustomException.class);
+        var created = service.createRecord(new StudyDtos.RecordRequest(null, "Photos", LocalDate.now(), "Evidence", List.of(), null, List.of(own.getId())), owner);
+        assertThatThrownBy(() -> service.createRecord(new StudyDtos.RecordRequest(null, "Reuse", LocalDate.now(), "Evidence", List.of(), null, List.of(own.getId())), owner))
+            .isInstanceOf(CustomException.class);
+        var removed = service.updateRecord(created.id(), new StudyDtos.RecordRequest(null, "Edited", LocalDate.now(), "Evidence", List.of(), created.version(), List.of()), owner);
+        assertThat(removed.photos()).isEmpty();
+        assertThat(own.getStatus()).isEqualTo(com.example.coalawebbackend.domain.attachment.entity.AttachmentStatus.DELETED);
+        var tooMany = new StudyDtos.RecordRequest(null, "Photos", LocalDate.now(), "Evidence", List.of(), null, List.of(1L, 2L, 3L, 4L, 5L, 6L));
+        assertThat(validator.validate(tooMany)).isNotEmpty();
+    }
+
+    @Test void photoUploadReservesPrivateAttachmentAndRejectsUnverifiedUsers() throws Exception {
+        org.mockito.Mockito.when(storage.store(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any()))
+            .thenReturn(new com.example.coalawebbackend.infra.storage.StoredFile("proof.png", "proof.png", "test/proof.png", "image/png", 10, "png", "test"));
+        String token = tokens.createToken(owner.getId().toString(), java.util.Map.of("role", "ROLE_USER"), 60000);
+        mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart("/api/study/photos")
+                .file(new org.springframework.mock.web.MockMultipartFile("file", "proof.png", "image/png", new byte[10]))
+                .header("Authorization", "Bearer " + token))
+            .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isCreated())
+            .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.status").value("TEMP"));
+        assertThat(attachmentRows.findAll()).allMatch(photo ->
+            photo.getTargetType() == com.example.coalawebbackend.domain.attachment.entity.AttachmentTargetType.STUDY_RECORD);
+        assertThatThrownBy(() -> attachments.uploadStudyPhoto(user("Unverified", false),
+            new org.springframework.mock.web.MockMultipartFile("file", new byte[10]))).isInstanceOf(CustomException.class);
+    }
+
+    @Test void privatePhotoCannotBeReattachedToPublicContent() {
+        var own = photo(owner);
+        assertThatThrownBy(() -> attachments.syncArchiveAttachment(owner, 1L, own.getId())).isInstanceOf(CustomException.class);
+        assertThatThrownBy(() -> attachments.syncInfoArticleAttachments(owner, 1L, List.of(own.getId()), null)).isInstanceOf(CustomException.class);
     }
 
     @Test void standaloneRecordCrudAndOwnerFilter() {

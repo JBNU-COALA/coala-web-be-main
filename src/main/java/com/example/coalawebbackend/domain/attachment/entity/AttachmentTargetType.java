@@ -5,5 +5,6 @@ public enum AttachmentTargetType {
     COMMENT,
     USER,
     INFO_ARTICLE,
+    STUDY_RECORD,
     ARCHIVE
 }

@@ -10,6 +10,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface AttachmentRepository extends JpaRepository<Attachment, Long> {
 
+    List<Attachment> findByStudyRecordIdAndStatusOrderByDisplayOrderAsc(String recordId, AttachmentStatus status);
+
     List<Attachment> findByIdIn(Collection<Long> ids);
 
     List<Attachment> findByTargetTypeAndTargetIdAndStatus(

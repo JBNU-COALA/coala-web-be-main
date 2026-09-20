@@ -16,6 +16,7 @@ import com.example.coalawebbackend.domain.memberservice.repository.MemberService
 import com.example.coalawebbackend.domain.post.entity.Post;
 import com.example.coalawebbackend.domain.post.entity.PostStatus;
 import com.example.coalawebbackend.domain.post.repository.PostRepository;
+import com.example.coalawebbackend.domain.study.StudyRecordRepository;
 import com.example.coalawebbackend.domain.user.entity.User;
 import com.example.coalawebbackend.domain.user.repository.UserRepository;
 import com.example.coalawebbackend.infra.storage.FileStorage;
@@ -42,6 +43,7 @@ public class AttachmentService {
     private final MemberServiceRepository memberServiceRepository;
     private final UserRepository userRepository;
     private final FileStorage fileStorage;
+    private final StudyRecordRepository studyRecords;
 
     @Transactional
     public AttachmentUploadResponse uploadImage(User uploader, MultipartFile file) {
@@ -55,8 +57,21 @@ public class AttachmentService {
 
     @Transactional(readOnly = true)
     public AttachmentDownloadResponse getDownload(Long attachmentId) {
+        return getDownload(attachmentId, null);
+    }
+
+    @Transactional(readOnly = true)
+    public AttachmentDownloadResponse getDownload(Long attachmentId, User actor) {
         Attachment attachment = getAttachment(attachmentId);
-        validateDownloadable(attachment);
+        if (attachment.getTargetType() == AttachmentTargetType.STUDY_RECORD) {
+            if (!attachment.isTemp() && !attachment.isActive()) throw new CustomException(ErrorCode.ATTACHMENT_NOT_FOUND);
+            if (actor == null || !actor.isVerified()) throw new CustomException(ErrorCode.ACCESS_DENIED);
+            if (attachment.isTemp() && !attachment.isUploadedBy(actor)) throw new CustomException(ErrorCode.ACCESS_DENIED);
+            if (attachment.isActive() && (attachment.getStudyRecordId() == null || !studyRecords.existsById(attachment.getStudyRecordId())))
+                throw new CustomException(ErrorCode.ATTACHMENT_NOT_FOUND);
+        } else {
+            validateDownloadable(attachment);
+        }
         if (!fileStorage.exists(attachment.getStoragePath())) {
             throw new CustomException(ErrorCode.ATTACHMENT_NOT_FOUND);
         }
@@ -66,6 +81,41 @@ public class AttachmentService {
                 attachment.getContentType(),
                 attachment.getFileSize()
         );
+    }
+
+    @Transactional
+    public AttachmentUploadResponse uploadStudyPhoto(User actor, MultipartFile file) {
+        if (actor == null || !actor.isVerified()) throw new CustomException(ErrorCode.ACCESS_DENIED);
+        AttachmentUploadResponse uploaded = upload(actor, file, FileCategory.IMAGE);
+        Attachment attachment = getAttachment(uploaded.attachmentId());
+        attachment.reserveForStudy();
+        return AttachmentUploadResponse.from(attachment);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Attachment> studyPhotos(String recordId) {
+        return attachmentRepository.findByStudyRecordIdAndStatusOrderByDisplayOrderAsc(recordId, AttachmentStatus.ACTIVE);
+    }
+
+    @Transactional
+    public void syncStudyPhotos(User actor, String recordId, List<Long> ids) {
+        if (ids == null) return; // Older clients must not erase existing photos.
+        if (ids.size() > 5 || normalizeIds(ids).size() != ids.size()) throw new CustomException(ErrorCode.INVALID_ATTACHMENT);
+        Map<Long, Attachment> requested = loadRequestedAttachments(ids);
+        for (Long id : ids) {
+            Attachment photo = requested.get(id);
+            boolean existing = photo.isActive() && recordId.equals(photo.getStudyRecordId());
+            boolean ownTemporary = photo.isTemp() && photo.isUploadedBy(actor);
+            if (photo.getTargetType() != AttachmentTargetType.STUDY_RECORD || photo.getFileCategory() != FileCategory.IMAGE
+                    || (!existing && !ownTemporary)) throw new CustomException(ErrorCode.INVALID_ATTACHMENT);
+        }
+        studyPhotos(recordId).stream().filter(photo -> !ids.contains(photo.getId())).forEach(photo -> photo.markDeleted(actor));
+        for (int index = 0; index < ids.size(); index++) requested.get(ids.get(index)).activateForStudy(recordId, index);
+    }
+
+    @Transactional
+    public void deleteStudyPhotos(User actor, String recordId) {
+        studyPhotos(recordId).forEach(photo -> photo.markDeleted(actor));
     }
 
     @Transactional
@@ -309,7 +359,7 @@ public class AttachmentService {
         if (!attachment.isUploadedBy(actor)) {
             throw new CustomException(ErrorCode.ACCESS_DENIED);
         }
-        if (attachment.isTemp()) {
+        if (attachment.isTemp() && attachment.getTargetType() == null) {
             return;
         }
         if (attachment.isActive()
@@ -329,7 +379,7 @@ public class AttachmentService {
         if (!attachment.isUploadedBy(actor)) {
             throw new CustomException(ErrorCode.ACCESS_DENIED);
         }
-        if (attachment.isTemp()) {
+        if (attachment.isTemp() && attachment.getTargetType() == null) {
             return;
         }
         throw new CustomException(ErrorCode.INVALID_ATTACHMENT);
@@ -344,7 +394,7 @@ public class AttachmentService {
         if (!attachment.isUploadedBy(actor)) {
             throw new CustomException(ErrorCode.ACCESS_DENIED);
         }
-        if (attachment.isTemp()) {
+        if (attachment.isTemp() && attachment.getTargetType() == null) {
             return;
         }
         throw new CustomException(ErrorCode.INVALID_ATTACHMENT);
