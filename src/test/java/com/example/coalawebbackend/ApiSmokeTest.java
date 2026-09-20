@@ -46,7 +46,6 @@ import org.springframework.test.web.servlet.MvcResult;
         "spring.data.redis.password=",
         "jwt.secret=test-jwt-secret-for-api-smoke",
         "github.api.base-url=http://127.0.0.1:1",
-        "app.seed.dev-account.enabled=true",
         "app.security.swagger-enabled=true",
         "app.storage.root-path=build/test-uploads"
 })
@@ -81,6 +80,7 @@ class ApiSmokeTest {
 
     @Test
     void allApiEndpointsRespond() throws Exception {
+        assertThat(userRepository.count()).isZero();
         String suffix = UUID.randomUUID().toString().replace("-", "").substring(0, 12);
         String email = "api-smoke-" + suffix + "@jbnu.ac.kr";
         String password = "P@ssw0rd!";
@@ -208,7 +208,7 @@ class ApiSmokeTest {
         mockMvc.perform(get("/api/users")
                 .header("Authorization", bearer(accessToken)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(6));
+                .andExpect(jsonPath("$.length()").value(1));
 
         mockMvc.perform(get("/api/users/{userId}", smokeUserId)
                         .header("Authorization", bearer(accessToken)))
@@ -219,7 +219,7 @@ class ApiSmokeTest {
         mockMvc.perform(get("/api/admin/users")
                 .header("Authorization", bearer(accessToken)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(6));
+                .andExpect(jsonPath("$.length()").value(1));
 
         mockMvc.perform(patch("/api/admin/users/{userId}/role", smokeUserId)
                         .header("Authorization", bearer(accessToken))
@@ -235,8 +235,7 @@ class ApiSmokeTest {
         mockMvc.perform(get("/api/services")
                         .header("Authorization", bearer(accessToken)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(8))
-                .andExpect(jsonPath("$[0].id").value("algo-room"));
+                .andExpect(jsonPath("$.length()").value(0));
 
         MvcResult serviceResult = mockMvc.perform(post("/api/services")
                         .header("Authorization", bearer(accessToken))
@@ -278,8 +277,7 @@ class ApiSmokeTest {
         mockMvc.perform(get("/api/services/instances/applications")
                         .header("Authorization", bearer(accessToken)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(2))
-                .andExpect(jsonPath("$[0].id").value("jc-002"));
+                .andExpect(jsonPath("$.length()").value(0));
 
         MvcResult applicationResult = mockMvc.perform(post("/api/services/instances/applications")
                         .header("Authorization", bearer(accessToken))
@@ -335,7 +333,7 @@ class ApiSmokeTest {
 
         mockMvc.perform(get("/api/info"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(6));
+                .andExpect(jsonPath("$.length()").value(0));
 
         MvcResult infoResult = mockMvc.perform(post("/api/info")
                         .header("Authorization", bearer(accessToken))
@@ -386,11 +384,10 @@ class ApiSmokeTest {
 
         mockMvc.perform(get("/api/recruits"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(5));
+                .andExpect(jsonPath("$.length()").value(0));
 
         mockMvc.perform(get("/api/recruits/{recruitId}", "react-study"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value("react-study"));
+                .andExpect(status().isNotFound());
 
         MvcResult recruitResult = mockMvc.perform(post("/api/recruits")
                         .header("Authorization", bearer(accessToken))

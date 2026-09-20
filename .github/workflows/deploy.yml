@@ -32,13 +32,12 @@ jobs:
           REDIS_PORT: ${{ secrets.REDIS_PORT }}
           REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
           GITHUB_API_TOKEN: ${{ secrets.GITHUB_API_TOKEN }}
-          APP_SEED_DEV_ACCOUNT_ENABLED: ${{ secrets.APP_SEED_DEV_ACCOUNT_ENABLED }}
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USERNAME }}
           key: ${{ secrets.SSH_KEY }}
           port: ${{ secrets.SERVER_PORT }}
-          envs: RESET_DATABASE_ON_DEPLOY,DB_URL,DB_USERNAME,DB_PASSWORD,JWT_SECRET,APP_CORS_ALLOWED_ORIGINS,SWAGGER_ENABLED,REDIS_URL,REDIS_PORT,REDIS_PASSWORD,GITHUB_API_TOKEN,APP_SEED_DEV_ACCOUNT_ENABLED
+          envs: RESET_DATABASE_ON_DEPLOY,DB_URL,DB_USERNAME,DB_PASSWORD,JWT_SECRET,APP_CORS_ALLOWED_ORIGINS,SWAGGER_ENABLED,REDIS_URL,REDIS_PORT,REDIS_PASSWORD,GITHUB_API_TOKEN
           script: |
             set -euo pipefail
             cd /home/ubuntu/coala-web-be-main
@@ -62,7 +61,6 @@ jobs:
               REDIS_PORT="${REDIS_PORT:-$(read_env_value REDIS_PORT)}"
               REDIS_PASSWORD="${REDIS_PASSWORD:-$(read_env_value REDIS_PASSWORD)}"
               GITHUB_API_TOKEN="${GITHUB_API_TOKEN:-$(read_env_value GITHUB_API_TOKEN)}"
-              APP_SEED_DEV_ACCOUNT_ENABLED="${APP_SEED_DEV_ACCOUNT_ENABLED:-$(read_env_value APP_SEED_DEV_ACCOUNT_ENABLED)}"
 
               umask 077
               cat > .env <<EOF
@@ -78,7 +76,6 @@ jobs:
             REDIS_PASSWORD=${REDIS_PASSWORD:-}
             GITHUB_API_BASE_URL=https://api.github.com
             GITHUB_API_TOKEN=${GITHUB_API_TOKEN:-}
-            APP_SEED_DEV_ACCOUNT_ENABLED=${APP_SEED_DEV_ACCOUNT_ENABLED:-true}
             EOF
             fi
 
@@ -92,9 +89,7 @@ jobs:
               REDIS_URL="${REDIS_URL:-$(read_env_value REDIS_URL)}"
               REDIS_PORT="${REDIS_PORT:-$(read_env_value REDIS_PORT)}"
               REDIS_PASSWORD="${REDIS_PASSWORD:-$(read_env_value REDIS_PASSWORD)}"
-              APP_SEED_DEV_ACCOUNT_ENABLED="${APP_SEED_DEV_ACCOUNT_ENABLED:-$(read_env_value APP_SEED_DEV_ACCOUNT_ENABLED)}"
-              APP_SEED_DEV_ACCOUNT_ENABLED="${APP_SEED_DEV_ACCOUNT_ENABLED:-true}"
-              export DB_URL DB_USERNAME DB_PASSWORD JWT_SECRET APP_CORS_ALLOWED_ORIGINS REDIS_URL REDIS_PORT REDIS_PASSWORD APP_SEED_DEV_ACCOUNT_ENABLED
+              export DB_URL DB_USERNAME DB_PASSWORD JWT_SECRET APP_CORS_ALLOWED_ORIGINS REDIS_URL REDIS_PORT REDIS_PASSWORD
             }
 
             require_runtime_env() {

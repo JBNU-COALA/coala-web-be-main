@@ -18,11 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class SiteContentService {
 
     private static final String ABOUT_KEY = "about";
-    private static final SiteContentResponse DEFAULT_ABOUT = new SiteContentResponse(
-            "함께 만들고 운영하는 개발 동아리",
-            "코알라는 프로젝트, 스터디, 서비스 운영을 통해 개발 경험을 쌓는 전북대학교 개발 동아리입니다.",
-            List.of("프로젝트", "스터디", "서비스 운영", "커뮤니티")
-    );
+    private static final SiteContentResponse DEFAULT_ABOUT = new SiteContentResponse("", "", List.of());
 
     private final SiteContentRepository siteContentRepository;
     private final PermissionService permissionService;

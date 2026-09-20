@@ -30,7 +30,7 @@ import org.springframework.transaction.annotation.Transactional;
     "spring.datasource.driver-class-name=org.h2.Driver", "spring.datasource.username=sa",
     "spring.datasource.password=", "spring.jpa.hibernate.ddl-auto=create-drop",
     "spring.flyway.enabled=false", "jwt.secret=study-integration-test-secret-value",
-    "app.seed.dev-account.enabled=false", "spring.jpa.show-sql=false"
+    "spring.jpa.show-sql=false"
 })
 class StudyIntegrationTest {
     @Autowired StudyService service;
