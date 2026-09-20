@@ -1,0 +1,32 @@
+name: Audit known seed accounts
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SERVER_PORT }}
+          script: |
+            set -euo pipefail
+            cd /home/ubuntu/coala-web-be-main
+            git fetch origin main
+            sql_file="$(mktemp)"
+            trap 'rm -f "$sql_file"' EXIT
+            git show origin/main:scripts/sql/audit-known-seed-accounts.sql > "$sql_file"
+            DB_URL="$(docker exec coala-web-be-main printenv DB_URL)"
+            DB_USERNAME="$(docker exec coala-web-be-main printenv DB_USERNAME)"
+            PGPASSWORD="$(docker exec coala-web-be-main printenv DB_PASSWORD)"
+            export PGPASSWORD
+            PSQL_URL="${DB_URL#jdbc:}"
+            docker run --rm -i --network container:coala-web-be-main -e PGPASSWORD postgres:16-alpine \
+              psql "$PSQL_URL" -U "$DB_USERNAME" -v ON_ERROR_STOP=1 < "$sql_file"
