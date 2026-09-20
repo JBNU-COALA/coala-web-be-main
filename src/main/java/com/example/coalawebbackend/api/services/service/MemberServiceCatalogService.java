@@ -31,7 +31,7 @@ public class MemberServiceCatalogService {
 
     @Transactional
     public MemberServiceResponse createService(User actor, MemberServiceRequest request) {
-        String id = generateId(request.title());
+        String id = UUID.randomUUID().toString();
         MemberService entity = MemberService.builder()
                 .id(id)
                 .title(request.title())
@@ -119,17 +119,6 @@ public class MemberServiceCatalogService {
                 service.getStack(),
                 canManageService(actor, service)
         );
-    }
-
-    private String generateId(String title) {
-        String base = title == null ? "service" : title.trim().toLowerCase()
-                .replaceAll("[^a-z0-9]+", "-")
-                .replaceAll("^-+|-+$", "");
-        String candidate = base.isBlank() ? "service" : base;
-        if (!memberServiceRepository.existsById(candidate)) {
-            return candidate;
-        }
-        return candidate + "-" + UUID.randomUUID().toString().substring(0, 8);
     }
 
     private String normalizeUrl(String url) {

@@ -254,6 +254,8 @@ class ApiSmokeTest {
                 .andReturn();
         String createdServiceId = readJson(serviceResult).get("id").asText();
 
+        assertThat(UUID.fromString(createdServiceId).toString()).isEqualTo(createdServiceId);
+
         mockMvc.perform(get("/api/services/{serviceId}", createdServiceId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(createdServiceId));
@@ -467,7 +469,7 @@ class ApiSmokeTest {
                                   "description": "Smoke board"
                                 }
                                 """.formatted(suffix)))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
 
         MvcResult boardResult = mockMvc.perform(post("/api/boards")
                         .header("Authorization", bearer(accessToken))

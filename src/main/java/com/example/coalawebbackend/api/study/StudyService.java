@@ -76,8 +76,8 @@ public class StudyService {
             throw new CustomException(ErrorCode.VALIDATION_FAILED);
         }
         return records.findByDateBetweenOrderByDateDescUpdatedAtDesc(from, to).stream()
-                .filter(record -> groupId == null || record.getGroup().getId().equals(groupId))
-                .filter(record -> userId == null || record.getAttendance().stream().anyMatch(entry -> entry.getUser().getId().equals(userId)))
+                .filter(record -> groupId == null || (record.getGroup() != null && record.getGroup().getId().equals(groupId)))
+                .filter(record -> userId == null || record.getAuthor().getId().equals(userId) || record.getAttendance().stream().anyMatch(entry -> entry.getUser().getId().equals(userId)))
                 .map(record -> toRecord(record, actor)).toList();
     }
 
@@ -88,24 +88,59 @@ public class StudyService {
 
     @Transactional
     public StudyDtos.Record createRecord(StudyDtos.RecordRequest request, User actor) {
-        StudyGroup group = groups.findById(request.groupId())
-                .orElseThrow(() -> new CustomException(ErrorCode.RESOURCE_NOT_FOUND));
-        assertManage(actor, group);
+        assertVerified(actor);
+        sanctions.assertCanWritePost(actor);
+        StudyGroup group = requestedGroup(request.groupId(), actor);
         StudyRecord record = new StudyRecord(group, actor);
-        update(record, request, members(group.getRecruit()), actor);
+        update(record, request, group == null ? List.of() : members(group.getRecruit()), actor);
         return toRecord(records.saveAndFlush(record), actor);
     }
 
     @Transactional
     public StudyDtos.Record updateRecord(String id, StudyDtos.RecordRequest request, User actor) {
         StudyRecord record = findRecord(id);
-        assertManage(actor, record.getGroup());
-        if (!record.getGroup().getId().equals(request.groupId())) throw new CustomException(ErrorCode.VALIDATION_FAILED);
+        assertManageRecord(actor, record);
+        sanctions.assertCanWritePost(actor);
+        Long currentGroupId = record.getGroup() == null ? null : record.getGroup().getId();
+        if (currentGroupId != null && !currentGroupId.equals(request.groupId())) throw new CustomException(ErrorCode.VALIDATION_FAILED);
         if (request.version() == null || !request.version().equals(record.getVersion())) throw new CustomException(ErrorCode.POST_NOT_EDITABLE);
         // Keep the original session roster even if recruitment membership later changes.
         List<User> roster = record.getAttendance().stream().map(StudyAttendance::getUser).toList();
+        if (currentGroupId == null && request.groupId() != null) {
+            StudyGroup group = requestedGroup(request.groupId(), actor);
+            record.attachGroup(group);
+            roster = members(group.getRecruit());
+        }
         update(record, request, roster, actor);
         return toRecord(records.saveAndFlush(record), actor);
+    }
+
+    private StudyGroup requestedGroup(Long id, User actor) {
+        if (id == null) return null;
+        StudyGroup group = groups.findById(id)
+                .orElseThrow(() -> new CustomException(ErrorCode.RESOURCE_NOT_FOUND));
+        assertManage(actor, group);
+        return group;
+    }
+
+    private boolean canManageRecord(User actor, StudyRecord record) {
+        return record.getGroup() == null
+                ? actor != null && (actor.getId().equals(record.getAuthor().getId()) || permissions.canModerate(actor))
+                : permissions.canManageRecruit(actor, record.getGroup().getRecruit());
+    }
+
+    private void assertManageRecord(User actor, StudyRecord record) {
+        assertVerified(actor);
+        if (!canManageRecord(actor, record)) throw new CustomException(ErrorCode.ACCESS_DENIED);
+    }
+
+    @Transactional
+    public void deleteRecord(String id, Long version, User actor) {
+        StudyRecord record = findRecord(id);
+        assertManageRecord(actor, record);
+        if (version == null || !version.equals(record.getVersion())) throw new CustomException(ErrorCode.POST_NOT_EDITABLE);
+        records.delete(record);
+        records.flush();
     }
 
     private void update(StudyRecord record, StudyDtos.RecordRequest request, List<User> roster, User actor) {
@@ -142,8 +177,8 @@ public class StudyService {
     }
 
     private StudyDtos.Record toRecord(StudyRecord record, User actor) {
-        return new StudyDtos.Record(record.getId(), record.getGroup().getId().toString(), record.getTitle(), record.getDate(), record.getContent(),
+        return new StudyDtos.Record(record.getId(), record.getGroup() == null ? null : record.getGroup().getId().toString(), record.getTitle(), record.getDate(), record.getContent(),
                 record.getAttendance().stream().map(entry -> new StudyDtos.Attendance(entry.getUser().getId().toString(), entry.getUser().getName(), entry.getStatus())).toList(),
-                record.getUpdatedAt().toString(), record.getVersion(), permissions.canManageRecruit(actor, record.getGroup().getRecruit()));
+                record.getUpdatedAt().toString(), record.getVersion(), canManageRecord(actor, record), record.getAuthor().getId().toString());
     }
 }

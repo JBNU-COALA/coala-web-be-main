@@ -47,6 +47,7 @@ public class RecruitService {
     private final RecruitBookmarkRepository recruitBookmarkRepository;
     private final UserService userService;
     private final PermissionService permissionService;
+    private final com.example.coalawebbackend.domain.moderation.service.SanctionPolicyService sanctions;
     private final NotificationService notificationService;
     private final com.example.coalawebbackend.domain.study.StudyGroupRepository studyGroupRepository;
 
@@ -80,10 +81,11 @@ public class RecruitService {
     @Transactional
     public RecruitPostResponse createRecruit(RecruitPostRequest request, String userId) {
         User user = userService.findById(userId);
-        List<RecruitPostRequest.RecruitRoleRequest> roleRequests = request.roles();
+        assertCanWrite(user);
+        List<RecruitPostRequest.RecruitRoleRequest> roleRequests = validatedRoles(request);
         int maxMembers = roleRequests.stream().mapToInt(role -> Math.max(role.max(), 1)).sum();
         RecruitPost recruit = RecruitPost.builder()
-                .id(generateRecruitId(request.title()))
+                .id(UUID.randomUUID().toString())
                 .title(request.title().trim())
                 .shortDesc(request.shortDesc().trim())
                 .category(request.category())
@@ -97,7 +99,7 @@ public class RecruitService {
                 .author(user)
                 .trustScore(88.0)
                 .tags(normalizeTags(request.tags()))
-                .techStack(request.techStack())
+                .techStack(normalizeList(request.techStack()))
                 .meetingType(request.meetingType())
                 .expectedDuration(request.expectedDuration())
                 .detailContent(request.detailContent())
@@ -108,7 +110,7 @@ public class RecruitService {
         for (int i = 0; i < roleRequests.size(); i++) {
             RecruitPostRequest.RecruitRoleRequest role = roleRequests.get(i);
             recruit.addRole(RecruitRole.builder()
-                    .label(role.label())
+                    .label(role.label().trim())
                     .current(0)
                     .max(Math.max(role.max(), 1))
                     .sortOrder(i)
@@ -122,6 +124,7 @@ public class RecruitService {
         RecruitPost recruit = recruitPostRepository.findForUpdate(recruitId)
                 .orElseThrow(() -> new CustomException(ErrorCode.RESOURCE_NOT_FOUND));
         assertCanManageRecruit(actor, recruit);
+        assertCanWrite(actor);
         String previousStatus = recruit.getStatus();
         List<RecruitPostRequest.RecruitRoleRequest> roleRequests = request.roles();
         List<RecruitApplication> accepted = recruitApplicationRepository.findByRecruitPost_IdOrderBySubmittedAtDesc(recruitId)
@@ -416,14 +419,20 @@ public class RecruitService {
         return fallback;
     }
 
-    private String generateRecruitId(String title) {
-        String base = title == null ? "recruit" : title.trim().toLowerCase()
-                .replaceAll("[^a-z0-9가-힣]+", "-")
-                .replaceAll("^-+|-+$", "");
-        String candidate = base.isBlank() ? "recruit" : base;
-        if (!recruitPostRepository.existsById(candidate)) {
-            return candidate;
+    private void assertCanWrite(User actor) {
+        if (!actor.isVerified()) throw new CustomException(ErrorCode.EMAIL_NOT_VERIFIED);
+        sanctions.assertCanWritePost(actor);
+    }
+
+    private List<RecruitPostRequest.RecruitRoleRequest> validatedRoles(RecruitPostRequest request) {
+        Set<String> labels = new HashSet<>();
+        for (RecruitPostRequest.RecruitRoleRequest role : request.roles()) {
+            if (!labels.add(role.label().trim())) throw new CustomException(ErrorCode.VALIDATION_FAILED);
         }
-        return candidate + "-" + UUID.randomUUID().toString().substring(0, 8);
+        if (request.tags() != null && request.tags().stream()
+                .anyMatch(tag -> (tag.trim().startsWith("#") ? tag.trim().length() : tag.trim().length() + 1) > 50)) {
+            throw new CustomException(ErrorCode.VALIDATION_FAILED);
+        }
+        return request.roles();
     }
 }

@@ -16,8 +16,8 @@ import lombok.*;
 public class StudyRecord {
     @Id @Column(length = 36)
     private String id;
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "group_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "group_id")
     private StudyGroup group;
     @Column(nullable = false, length = 120)
     private String title;
@@ -43,6 +43,8 @@ public class StudyRecord {
     public StudyRecord(StudyGroup group, User author) {
         this.id = UUID.randomUUID().toString(); this.group = group; this.author = author;
     }
+
+    public void attachGroup(StudyGroup group) { this.group = group; }
 
     public void update(String title, LocalDate date, String content, List<StudyAttendance> attendance, User actor) {
         this.title = title.trim(); this.date = date; this.content = content.trim();

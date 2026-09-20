@@ -85,6 +85,78 @@ class StudyIntegrationTest {
             java.util.Arrays.stream(ids).map(id -> new StudyDtos.AttendanceRequest(id, "present")).toList(), version);
     }
 
+    @Test void standaloneRecordCrudAndOwnerFilter() {
+        StudyDtos.RecordRequest request = new StudyDtos.RecordRequest(null, "Notes", LocalDate.now(), "Independent notes", List.of(), null);
+        assertThat(validator.validate(request)).isEmpty();
+        StudyDtos.Record created = service.createRecord(request, member);
+        assertThat(created.groupId()).isNull();
+        assertThat(created.authorId()).isEqualTo(member.getId().toString());
+        assertThat(created.canManage()).isTrue();
+        assertThat(service.getRecord(created.id(), outsider).canManage()).isFalse();
+        assertThat(service.listRecords(LocalDate.now(), LocalDate.now(), null, member.getId(), member)).hasSize(1);
+        assertThat(service.listRecords(LocalDate.now(), LocalDate.now(), 999L, null, member)).isEmpty();
+        StudyDtos.RecordRequest changed = new StudyDtos.RecordRequest(null, "Updated", LocalDate.now(), "Updated notes", List.of(), created.version());
+        assertThatThrownBy(() -> service.updateRecord(created.id(), changed, outsider)).isInstanceOf(CustomException.class);
+        assertThatThrownBy(() -> service.deleteRecord(created.id(), created.version(), outsider)).isInstanceOf(CustomException.class);
+        StudyDtos.Record updated = service.updateRecord(created.id(), changed, member);
+        assertThat(updated.title()).isEqualTo("Updated");
+        assertThatThrownBy(() -> service.deleteRecord(created.id(), created.version(), member)).isInstanceOf(CustomException.class);
+        service.deleteRecord(created.id(), updated.version(), member);
+        assertThatThrownBy(() -> service.getRecord(created.id(), member)).isInstanceOf(CustomException.class);
+    }
+
+    @Test void standaloneCanBeLinkedLaterButOnlyToAnAuthorizedGroup() {
+        StudyDtos.Group group = group();
+        StudyDtos.Record created = service.createRecord(new StudyDtos.RecordRequest(null, "Notes", LocalDate.now(), "Notes", List.of(), null), outsider);
+        assertThatThrownBy(() -> service.updateRecord(created.id(), request(group, created.version(), owner.getId()), outsider))
+                .isInstanceOf(CustomException.class);
+        StudyDtos.Record own = service.createRecord(new StudyDtos.RecordRequest(null, "Notes", LocalDate.now(), "Notes", List.of(), null), owner);
+        StudyDtos.Record linked = service.updateRecord(own.id(), request(group, own.version(), owner.getId()), owner);
+        assertThat(linked.groupId()).isEqualTo(group.id());
+        assertThat(linked.attendance()).hasSize(1);
+        assertThatThrownBy(() -> service.updateRecord(linked.id(),
+                new StudyDtos.RecordRequest(null, "Notes", LocalDate.now(), "Notes", List.of(), linked.version()), owner))
+                .isInstanceOf(CustomException.class);
+    }
+
+    @Test void standaloneRejectsForgedAttendanceAndUnverifiedAuthor() {
+        StudyDtos.RecordRequest forged = new StudyDtos.RecordRequest(null, "Notes", LocalDate.now(), "Notes",
+                List.of(new StudyDtos.AttendanceRequest(outsider.getId(), "present")), null);
+        assertThatThrownBy(() -> service.createRecord(forged, owner)).isInstanceOf(CustomException.class);
+        assertThatThrownBy(() -> service.createRecord(new StudyDtos.RecordRequest(null, "Notes", LocalDate.now(), "Notes", List.of(), null),
+                user("Unverified", false))).isInstanceOf(CustomException.class);
+        User admin = user("Admin", true, UserRole.SUPER_ADMIN);
+        StudyDtos.Record record = service.createRecord(new StudyDtos.RecordRequest(null, "Notes", LocalDate.now(), "Notes", List.of(), null), owner);
+        assertThat(service.getRecord(record.id(), admin).canManage()).isTrue();
+        service.deleteRecord(record.id(), record.version(), admin);
+    }
+
+    @Test void recruitCrudAllowsOptionalFieldsAndLongTitlesWithoutLongIds() {
+        var request = new com.example.coalawebbackend.api.recruit.dto.RecruitPostRequest(
+                "Long title ".repeat(12), "Summary", "study",
+                List.of(new com.example.coalawebbackend.api.recruit.dto.RecruitPostRequest.RecruitRoleRequest("Member", 2)),
+                List.of(), "Online", "One week", "open", List.of(), List.of("Content, with commas"), List.of());
+        assertThat(validator.validate(request)).isEmpty();
+        var created = recruitment.createRecruit(request, owner.getId().toString());
+        assertThat(created.id()).hasSize(36);
+        em.flush(); em.clear();
+        assertThat(recruitment.getRecruit(created.id()).detailContent()).containsExactly("Content, with commas");
+        assertThat(recruitment.updateRecruit(owner, created.id(), request).title()).isEqualTo(request.title().trim());
+        em.flush(); em.clear();
+        assertThatThrownBy(() -> recruitment.updateRecruit(outsider, created.id(), request)).isInstanceOf(CustomException.class);
+        recruitment.deleteRecruit(owner, created.id());
+        em.flush();
+        assertThatThrownBy(() -> recruitment.getRecruit(created.id())).isInstanceOf(CustomException.class);
+    }
+
+    @Test void validatesRecruitRoleBoundsAndCategory() {
+        var request = new com.example.coalawebbackend.api.recruit.dto.RecruitPostRequest(
+                "Title", "Summary", "invalid",
+                List.of(new com.example.coalawebbackend.api.recruit.dto.RecruitPostRequest.RecruitRoleRequest("", -1)),
+                List.of(), "Online", "One week", "forged", List.of(), List.of("Content"), List.of());
+        assertThat(validator.validate(request)).hasSizeGreaterThanOrEqualTo(4);
+    }
+
     @Test void approvalControlsRosterAndPersistsRecord() {
         StudyDtos.Group group = group();
         assertThat(group.members()).hasSize(1);

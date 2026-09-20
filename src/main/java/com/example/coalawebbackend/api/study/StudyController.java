@@ -48,6 +48,12 @@ public class StudyController {
         return service.createRecord(request, users.findById(userId));
     }
 
+    @DeleteMapping("/records/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable String id, @RequestParam Long version, @AuthenticationPrincipal String userId) {
+        service.deleteRecord(id, version, users.findById(userId));
+    }
+
     @PatchMapping("/records/{id}")
     public StudyDtos.Record update(@PathVariable String id, @Valid @RequestBody StudyDtos.RecordRequest request, @AuthenticationPrincipal String userId) {
         return service.updateRecord(id, request, users.findById(userId));
