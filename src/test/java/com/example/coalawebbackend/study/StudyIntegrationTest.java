@@ -54,6 +54,12 @@ class StudyIntegrationTest {
     RecruitPost recruit;
     RecruitApplication application;
 
+    @Test
+    void applicationValidatorUsesKoreanCalendar() {
+        var factory = (org.springframework.validation.beanvalidation.LocalValidatorFactoryBean) validator;
+        assertThat(factory.getClockProvider().getClock().getZone()).isEqualTo(java.time.ZoneId.of("Asia/Seoul"));
+    }
+
     @BeforeEach
     void setup() {
         owner = user("Owner", true);
