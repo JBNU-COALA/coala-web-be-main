@@ -2,6 +2,7 @@ package com.example.coalawebbackend.api.users.dto;
 
 import com.example.coalawebbackend.domain.user.entity.AcademicStatus;
 import com.example.coalawebbackend.domain.user.entity.Gender;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Size;
 
@@ -18,6 +19,7 @@ public record UserProfileRequest(
         @Size(max = 4000) String activityNote,
         @Size(max = 4000) String awardNote,
         @Size(max = 1000) String sharedRepositories,
-        @Size(max = 4000) String customization
+        @Size(max = 4000) String customization,
+        @Valid UserDetailsRequest details
 ) {
 }

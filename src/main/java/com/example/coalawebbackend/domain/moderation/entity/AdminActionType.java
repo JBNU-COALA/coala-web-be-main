@@ -11,5 +11,6 @@ public enum AdminActionType {
     DELETE_COMMENT,
     SANCTION_USER,
     HANDLE_REPORT,
+    UPDATE_USER_PROFILE,
     UPDATE_USER_ROLE
 }

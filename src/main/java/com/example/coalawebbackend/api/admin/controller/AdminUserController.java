@@ -35,6 +35,17 @@ public class AdminUserController {
     private final UserService userService;
     private final PermissionService permissionService;
     private final AdminAuditService adminAuditService;
+    private final com.example.coalawebbackend.api.users.service.UserDetailsService userDetailsService;
+
+    @PatchMapping("/{userId}/profile")
+    public ResponseEntity<UserResponse> updateProfile(
+            @AuthenticationPrincipal String adminId,
+            @PathVariable Long userId,
+            @Valid @RequestBody com.example.coalawebbackend.api.users.dto.UserDetailsRequest request,
+            HttpServletRequest httpRequest) {
+        User admin = userService.findById(adminId);
+        return ResponseEntity.ok(userDetailsService.updateAsAdmin(admin.getId(), userId, request, httpRequest));
+    }
 
     @GetMapping
     public ResponseEntity<List<UserResponse>> getUsers(@AuthenticationPrincipal String adminId) {

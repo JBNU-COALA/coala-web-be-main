@@ -30,6 +30,7 @@ public class UserResponse {
     private String studentId;
     private Integer grade;
     private String githubId;
+    private String baekjoonId;
     private String linkedinUrl;
     private AcademicStatus academicStatus;
     private boolean verified;
@@ -50,6 +51,7 @@ public class UserResponse {
                 .studentId(user.getStudentId())
                 .grade(user.getGrade())
                 .githubId(user.getGithubId())
+                .baekjoonId(user.getBaekjoonId())
                 .linkedinUrl(user.getLinkedinUrl())
                 .academicStatus(user.getAcademicStatus())
                 .verified(user.isVerified())

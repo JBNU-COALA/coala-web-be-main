@@ -181,6 +181,15 @@ public class User extends BaseEntity {
         this.linkedinUrl = normalizeBlank(linkedinUrl);
     }
 
+    public void updatePersonalDetails(String nickname, LocalDate birthDate, String department,
+            Integer grade, String baekjoonId) {
+        this.nickname = normalizeBlank(nickname);
+        this.birthDate = birthDate;
+        this.department = requireValue(department, this.department);
+        this.grade = grade;
+        this.baekjoonId = normalizeBlank(baekjoonId);
+    }
+
     private String normalizeBlank(String value) {
         if (value == null) {
             return null;

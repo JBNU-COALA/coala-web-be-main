@@ -21,6 +21,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     List<User> findByVerifiedTrue();
 
+    boolean existsByNicknameAndIdNot(String nickname, Long id);
+
     boolean existsByEmail(String email);
 
     boolean existsByStudentId(String studentId);

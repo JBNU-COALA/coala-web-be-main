@@ -29,6 +29,7 @@ public class UserDirectoryService {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private final UserRepository userRepository;
+    private final UserDetailsService userDetailsService;
 
     public List<UserDirectoryResponse> getUsers(Long currentUserId) {
         return userRepository.findAll(Sort.by(Sort.Direction.ASC, "id"))
@@ -50,9 +51,12 @@ public class UserDirectoryService {
         }
         User user = userRepository.findById(currentUserId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+        if (request.email() != null && !request.email().trim().equalsIgnoreCase(user.getEmail())) {
+            throw new CustomException(ErrorCode.VALIDATION_FAILED);
+        }
         validateUniqueProfileFields(user, request);
         user.updateAccountProfile(
-                normalizedOrCurrent(request.email(), user.getEmail()).toLowerCase(),
+                user.getEmail(),
                 normalizedOrCurrent(request.name(), user.getName()),
                 normalizedOrCurrent(request.studentId(), user.getStudentId()),
                 normalizedOrCurrent(request.githubId(), user.getGithubId()),
@@ -61,6 +65,7 @@ public class UserDirectoryService {
                 request.academicStatus() == null ? user.getAcademicStatus() : request.academicStatus(),
                 request.linkedinUrl() == null ? user.getLinkedinUrl() : normalizeBlank(request.linkedinUrl())
         );
+        if (request.details() != null) userDetailsService.apply(user, request.details());
         user.updateProfile(
                 request.bio(),
                 request.activityNote(),

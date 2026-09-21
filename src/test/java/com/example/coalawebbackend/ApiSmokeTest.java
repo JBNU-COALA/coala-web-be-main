@@ -144,6 +144,37 @@ class ApiSmokeTest {
         String userAccessToken = loginJson.get("accessToken").asText();
         long smokeUserId = loginJson.get("user").get("id").asLong();
 
+        String detailsJson = """
+                {"name":"Api Smoke","nickname":"updated%s","birthDate":"2000-02-03",
+                 "gender":"OTHER","department":"Engineering","lab":"Updated Lab",
+                 "studentId":"%s","grade":4,"githubId":"smoke%s","baekjoonId":"updated_boj",
+                 "linkedinUrl":"https://www.linkedin.com/in/smoke","academicStatus":"GRADUATED",
+                 "email":"must-not-change@example.com","role":"SUPER_ADMIN","verified":false}
+                """.formatted(suffix, suffix, suffix);
+        mockMvc.perform(get("/api/users/me/account")).andExpect(status().isUnauthorized());
+        mockMvc.perform(patch("/api/admin/users/{userId}/profile", smokeUserId)
+                        .header("Authorization", bearer(userAccessToken))
+                        .contentType(MediaType.APPLICATION_JSON).content(detailsJson))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(patch("/api/users/me/profile")
+                        .header("Authorization", bearer(userAccessToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"details\":" + detailsJson + ",\"bio\":\"Updated bio\"}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.bio").value("Updated bio"));
+        mockMvc.perform(get("/api/users/me/account").header("Authorization", bearer(userAccessToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.email").value(email))
+                .andExpect(jsonPath("$.role").value("USER"))
+                .andExpect(jsonPath("$.verified").value(true))
+                .andExpect(jsonPath("$.birthDate").value("2000-02-03"))
+                .andExpect(jsonPath("$.baekjoonId").value("updated_boj"))
+                .andExpect(jsonPath("$.grade").value(4));
+        mockMvc.perform(patch("/api/users/me/profile")
+                        .header("Authorization", bearer(userAccessToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"different@example.com\"}"))
+                .andExpect(status().isBadRequest());
+
         MvcResult userInfoResult = mockMvc.perform(post("/api/info")
                         .header("Authorization", bearer(userAccessToken))
                         .contentType(MediaType.APPLICATION_JSON)
@@ -231,6 +262,14 @@ class ApiSmokeTest {
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.role").value("SUPER_ADMIN"));
+
+        mockMvc.perform(patch("/api/admin/users/{userId}/profile", smokeUserId)
+                        .header("Authorization", bearer(accessToken))
+                        .contentType(MediaType.APPLICATION_JSON).content(detailsJson))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.email").value(email))
+                .andExpect(jsonPath("$.role").value("SUPER_ADMIN"));
+        mockMvc.perform(get("/api/users/me/account").header("Authorization", bearer(accessToken)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.department").value("Engineering"));
 
         mockMvc.perform(get("/api/services")
                         .header("Authorization", bearer(accessToken)))

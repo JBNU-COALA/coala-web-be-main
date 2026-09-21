@@ -27,6 +27,13 @@ public class UsersController {
 
     private final UserDirectoryService userDirectoryService;
     private final UserActivityService userActivityService;
+    private final com.example.coalawebbackend.api.users.service.UserDetailsService userDetailsService;
+
+    @GetMapping("/me/account")
+    public ResponseEntity<com.example.coalawebbackend.api.user.dto.UserResponse> getMyAccount(
+            @AuthenticationPrincipal String currentUserId) {
+        return ResponseEntity.ok(userDetailsService.getAccount(parseUserId(currentUserId)));
+    }
 
     @GetMapping
     @Operation(summary = "유저 목록 조회", description = "가입된 사용자 계정을 기반으로 유저 목록을 조회합니다.")
