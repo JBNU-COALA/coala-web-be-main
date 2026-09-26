@@ -10,6 +10,8 @@ public interface MemberServiceRepository extends JpaRepository<MemberService, St
 
     List<MemberService> findAllByOrderByTitleAsc();
 
+    List<MemberService> findByOwnerUser_IdOrderByCreatedAtDesc(Long userId);
+
     @Query("""
             SELECT CASE WHEN COUNT(service) > 0 THEN true ELSE false END
             FROM MemberService service

@@ -57,6 +57,7 @@ public class SecurityConfig {
                                     "/api/services/*",
                                     "/api/github/public-activity",
                                     "/api/site/about",
+                                    "/api/site/banners",
                                     "/api/archive",
                                     "/api/archive/*",
                                     "/api/info",

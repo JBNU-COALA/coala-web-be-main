@@ -22,6 +22,7 @@ public record InfoArticleResponse(
         long likeCount,
         boolean likedByMe,
         String createdAt,
-        String updatedAt
+        String updatedAt,
+        boolean bookmarkedByMe
 ) {
 }

@@ -63,6 +63,15 @@ dependencies {
 
 tasks.named('test') {
     useJUnitPlatform()
+    // Tests must never load developer dotenv files or the production application config.
+    classpath = classpath.filter { !it.name.startsWith('spring-dotenv-') }
+    systemProperty 'spring.config.location', 'classpath:/application-test.properties'
+    systemProperty 'spring.config.additional-location', ''
+    systemProperty 'spring.datasource.url', 'jdbc:h2:mem:coala-isolated-test;MODE=PostgreSQL;DB_CLOSE_DELAY=-1'
+    systemProperty 'spring.datasource.driver-class-name', 'org.h2.Driver'
+    systemProperty 'spring.datasource.username', 'sa'
+    systemProperty 'spring.datasource.password', ''
+    systemProperty 'spring.flyway.enabled', 'false'
 }
 
 // ===== Spotless 설정 =====

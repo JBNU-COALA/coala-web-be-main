@@ -9,7 +9,9 @@ import com.example.coalawebbackend.common.exception.CustomException;
 import com.example.coalawebbackend.domain.attachment.entity.Attachment;
 import com.example.coalawebbackend.domain.attachment.service.AttachmentService;
 import com.example.coalawebbackend.domain.info.entity.InfoArticle;
+import com.example.coalawebbackend.domain.info.entity.InfoArticleBookmark;
 import com.example.coalawebbackend.domain.info.entity.InfoCategory;
+import com.example.coalawebbackend.domain.info.repository.InfoArticleBookmarkRepository;
 import com.example.coalawebbackend.domain.info.repository.InfoArticleRepository;
 import com.example.coalawebbackend.domain.infolike.entity.InfoArticleLike;
 import com.example.coalawebbackend.domain.infolike.repository.InfoArticleLikeRepository;
@@ -36,6 +38,7 @@ public class InfoArticleService {
     private static final DateTimeFormatter DISPLAY_DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy.MM.dd");
 
     private final InfoArticleRepository infoArticleRepository;
+    private final InfoArticleBookmarkRepository infoArticleBookmarkRepository;
     private final InfoArticleLikeRepository infoArticleLikeRepository;
     private final PermissionService permissionService;
     private final ContentSafetyService contentSafetyService;
@@ -98,7 +101,7 @@ public class InfoArticleService {
         );
         markdownArchiveService.saveInfoArticleSnapshot(savedArticle);
         notificationService.notifyInterestedInfo(actor, savedArticle);
-        return toResponse(savedArticle);
+        return toResponse(savedArticle, actor.getId());
     }
 
     @Transactional
@@ -124,23 +127,37 @@ public class InfoArticleService {
             );
         }
         markdownArchiveService.saveInfoArticleSnapshot(article);
-        return toResponse(article);
+        return toResponse(article, actor.getId());
     }
 
     @Transactional
     public void deleteArticle(User actor, Long articleId) {
-        InfoArticle article = getArticleEntity(articleId);
+        InfoArticle article = infoArticleRepository.findForUpdate(articleId)
+                .orElseThrow(() -> new CustomException(ErrorCode.RESOURCE_NOT_FOUND));
         permissionService.assertCanManageInfoArticle(actor, article);
         infoArticleLikeRepository.deleteByArticle(article);
+        infoArticleBookmarkRepository.deleteByArticle(article);
         attachmentService.markInfoArticleAttachmentsDeleted(article.getId(), actor);
         infoArticleRepository.delete(article);
     }
 
     @Transactional
-    public InfoArticleResponse bookmarkArticle(Long articleId) {
-        InfoArticle article = getArticleEntity(articleId);
-        article.increaseBookmarkCount();
-        return toResponse(article);
+    public InfoArticleResponse bookmarkArticle(User actor, Long articleId) {
+        InfoArticle article = infoArticleRepository.findForUpdate(articleId)
+                .orElseThrow(() -> new CustomException(ErrorCode.RESOURCE_NOT_FOUND));
+        Optional<InfoArticleBookmark> existing = infoArticleBookmarkRepository.findByUser_IdAndArticle_Id(actor.getId(), articleId);
+        if (existing.isPresent()) {
+            infoArticleBookmarkRepository.delete(existing.get());
+        } else {
+            infoArticleBookmarkRepository.save(new InfoArticleBookmark(actor, article));
+        }
+        infoArticleBookmarkRepository.flush();
+        return toResponse(article, actor.getId());
+    }
+
+    public List<InfoArticleResponse> getMyBookmarks(User actor) {
+        return infoArticleBookmarkRepository.findByUser_IdOrderByCreatedAtDescIdDesc(actor.getId()).stream()
+                .map(bookmark -> toResponse(bookmark.getArticle(), actor.getId())).toList();
     }
 
     @Transactional
@@ -243,11 +260,12 @@ public class InfoArticleService {
                 attachmentIds,
                 thumbnailAttachmentId,
                 article.getViewCount(),
-                article.getBookmarkCount(),
+                infoArticleBookmarkRepository.countByArticle_Id(article.getId()),
                 infoArticleLikeRepository.countByArticle(article),
                 isLikedBy(article, currentUserId),
                 article.getCreatedAt() == null ? null : article.getCreatedAt().toString(),
-                article.getUpdatedAt() == null ? null : article.getUpdatedAt().toString()
+                article.getUpdatedAt() == null ? null : article.getUpdatedAt().toString(),
+                currentUserId != null && infoArticleBookmarkRepository.existsByUser_IdAndArticle_Id(currentUserId, article.getId())
         );
     }
 

@@ -22,7 +22,7 @@ class PermissionServiceTest {
     @DisplayName("공지 게시판은 일반 회원이 글을 작성할 수 없다")
     void noticeBoardCreateDeniedForRegularUser() {
         User user = User.builder().role(UserRole.USER).build();
-        Board noticeBoard = Board.builder().name("공지").build();
+        Board noticeBoard = Board.builder().name("공지").categoryKey("notice").build();
 
         assertThatThrownBy(() -> permissionService.assertCanCreatePost(user, noticeBoard))
                 .isInstanceOf(CustomException.class)
@@ -37,8 +37,20 @@ class PermissionServiceTest {
     @DisplayName("공지 게시판은 운영자 이상만 글을 작성할 수 있다")
     void noticeBoardCreateAllowedForModerator() {
         User admin = User.builder().role(UserRole.STAFF).build();
-        Board noticeBoard = Board.builder().name("공지").build();
+        Board noticeBoard = Board.builder().name("공지").categoryKey("notice").build();
 
         permissionService.assertCanCreatePost(admin, noticeBoard);
+    }
+
+    @Test
+    void noticeAuthorizationSurvivesRenameAndDoesNotInferFromDisplayName() {
+        User user = User.builder().role(UserRole.USER).build();
+        Board notice = Board.builder().name("공지").categoryKey("notice").build();
+        notice.updateBoard("Renamed announcements", "Description", true);
+        assertThatThrownBy(() -> permissionService.assertCanCreatePost(user, notice))
+                .isInstanceOf(CustomException.class);
+        var post = com.example.coalawebbackend.domain.post.entity.Post.create("Title", "Body", notice, user);
+        assertThatThrownBy(() -> permissionService.assertCanComment(user, post)).isInstanceOf(CustomException.class);
+        permissionService.assertCanCreatePost(user, Board.builder().name("공지").categoryKey("free").build());
     }
 }

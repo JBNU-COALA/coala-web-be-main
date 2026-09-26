@@ -167,4 +167,8 @@ public class RecruitPost extends BaseEntity {
     public void increaseBookmarks() {
         this.bookmarks++;
     }
+
+    public void decreaseBookmarks() {
+        this.bookmarks = Math.max(0, this.bookmarks - 1);
+    }
 }

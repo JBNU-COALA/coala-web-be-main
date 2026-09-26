@@ -239,8 +239,9 @@ public class RecruitService {
 
     @Transactional
     public RecruitPostResponse bookmark(String recruitId, String userId) {
-        RecruitPost recruit = getRecruitEntity(recruitId);
         User user = userService.findById(userId);
+        RecruitPost recruit = recruitPostRepository.findForUpdate(recruitId)
+                .orElseThrow(() -> new CustomException(ErrorCode.RESOURCE_NOT_FOUND));
         recruitBookmarkRepository.findByRecruitPost_IdAndUser_Id(recruitId, user.getId())
                 .orElseGet(() -> {
                     RecruitBookmark bookmark = RecruitBookmark.builder()
@@ -248,12 +249,28 @@ public class RecruitService {
                             .user(user)
                             .build();
                     recruit.increaseBookmarks();
+                    if ("closing-soon".equalsIgnoreCase(recruit.getStatus())) {
+                        notificationService.notifyRecruitClosingSoon(user, recruit);
+                    }
                     return recruitBookmarkRepository.save(bookmark);
                 });
-        if ("closing-soon".equalsIgnoreCase(recruit.getStatus())) {
-            notificationService.notifyRecruitClosingSoon(user, recruit);
-        }
         return toPostResponse(recruit);
+    }
+
+    public List<RecruitPostResponse> getMyBookmarks(String userId) {
+        User user = userService.findById(userId);
+        return recruitBookmarkRepository.findByUser_IdOrderByCreatedAtDescIdDesc(user.getId()).stream()
+                .map(bookmark -> toPostResponse(bookmark.getRecruitPost())).toList();
+    }
+
+    @Transactional
+    public void removeBookmark(String recruitId, String userId) {
+        User user = userService.findById(userId);
+        recruitPostRepository.findForUpdate(recruitId).ifPresent(recruit ->
+                recruitBookmarkRepository.findByRecruitPost_IdAndUser_Id(recruitId, user.getId()).ifPresent(bookmark -> {
+                    recruitBookmarkRepository.delete(bookmark);
+                    recruit.decreaseBookmarks();
+                }));
     }
 
     private RecruitPost getRecruitEntity(String recruitId) {

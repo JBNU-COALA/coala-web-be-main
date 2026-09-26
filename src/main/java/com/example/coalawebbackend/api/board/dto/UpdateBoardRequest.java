@@ -1,6 +1,7 @@
 package com.example.coalawebbackend.api.board.dto;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -20,4 +21,7 @@ public class UpdateBoardRequest {
     private String description;
 
     private Boolean isActive;
+
+    @Pattern(regexp = "notice|free|humor|news|contest|lab|resource")
+    private String categoryKey;
 }

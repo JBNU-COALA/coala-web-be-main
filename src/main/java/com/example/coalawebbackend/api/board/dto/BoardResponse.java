@@ -16,6 +16,7 @@ public class BoardResponse {
     private Long boardId;
     private String boardName;
     private BoardType boardType;
+    private String categoryKey;
     private String description;
     private Boolean isActive;
     private LocalDateTime createdAt;
@@ -27,6 +28,7 @@ public class BoardResponse {
                 .boardId(board.getBoardId())
                 .boardName(board.getName())
                 .boardType(board.getType())
+                .categoryKey(board.getCategoryKey())
                 .description(board.getDescription())
                 .isActive(board.getIsActive())
                 .createdAt(board.getCreatedAt())

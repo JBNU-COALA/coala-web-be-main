@@ -51,6 +51,9 @@ public class Board extends BaseEntity {
     @Builder.Default
     private BoardType type = BoardType.NORMAL;
 
+    @Column(name = "category_key", length = 20)
+    private String categoryKey;
+
     @Column(name = "is_active", nullable = false)
     @Builder.Default
     private Boolean isActive = true;
@@ -66,6 +69,9 @@ public class Board extends BaseEntity {
         if (this.type == null) {
             this.type = BoardType.NORMAL;
         }
+        if (this.type == BoardType.NORMAL && this.categoryKey == null) {
+            this.categoryKey = "free";
+        }
     }
 
     public void updateBoard(String name, String description, Boolean isActive) {
@@ -78,6 +84,10 @@ public class Board extends BaseEntity {
 
     public void deactivate() {
         this.isActive = false;
+    }
+
+    public void updateCategoryKey(String categoryKey) {
+        this.categoryKey = categoryKey;
     }
 
     public static Board createFromBoard(String name, String description, String type, User user) {

@@ -1,11 +1,16 @@
 package com.example.coalawebbackend.domain.instance.entity;
 
 import com.example.coalawebbackend.common.entity.BaseEntity;
+import com.example.coalawebbackend.domain.user.entity.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import java.time.Instant;
 import java.time.LocalDate;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -48,4 +53,25 @@ public class ServiceInquiry extends BaseEntity {
 
     @Column(name = "created_date", nullable = false)
     private LocalDate createdDate;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private User user;
+
+    @Column(columnDefinition = "TEXT")
+    private String reply;
+
+    @Column(name = "answered_at")
+    private Instant answeredAt;
+
+    public void respond(String status, String reply) {
+        this.status = status;
+        this.reply = reply.trim();
+        this.statusClass = switch (status) {
+            case "answered" -> "status--approved";
+            case "closed" -> "status--closed";
+            default -> "status--pending";
+        };
+        this.answeredAt = this.reply.isBlank() ? null : Instant.now();
+    }
 }

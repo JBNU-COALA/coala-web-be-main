@@ -142,4 +142,15 @@ public class RecruitController {
     ) {
         return ResponseEntity.ok(recruitService.bookmark(recruitId, userId));
     }
+
+    @GetMapping("/bookmarks/me")
+    public ResponseEntity<List<RecruitPostResponse>> getMyBookmarks(@AuthenticationPrincipal String userId) {
+        return ResponseEntity.ok(recruitService.getMyBookmarks(userId));
+    }
+
+    @DeleteMapping("/{recruitId}/bookmarks")
+    public ResponseEntity<Void> removeBookmark(@PathVariable String recruitId, @AuthenticationPrincipal String userId) {
+        recruitService.removeBookmark(recruitId, userId);
+        return ResponseEntity.noContent().build();
+    }
 }

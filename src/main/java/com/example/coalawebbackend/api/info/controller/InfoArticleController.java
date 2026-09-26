@@ -82,9 +82,15 @@ public class InfoArticleController {
     }
 
     @PostMapping("/{articleId}/bookmarks")
-    @Operation(summary = "정보공유 저장", description = "정보공유 글의 저장 수를 증가시킵니다.")
-    public ResponseEntity<InfoArticleResponse> bookmarkArticle(@PathVariable Long articleId) {
-        return ResponseEntity.ok(infoArticleService.bookmarkArticle(articleId));
+    @Operation(summary = "정보공유 저장", description = "로그인 사용자의 정보공유 저장 상태를 토글합니다.")
+    public ResponseEntity<InfoArticleResponse> bookmarkArticle(@PathVariable Long articleId,
+                                                              @AuthenticationPrincipal String userId) {
+        return ResponseEntity.ok(infoArticleService.bookmarkArticle(userService.findById(userId), articleId));
+    }
+
+    @GetMapping("/bookmarks/me")
+    public ResponseEntity<List<InfoArticleResponse>> getMyBookmarks(@AuthenticationPrincipal String userId) {
+        return ResponseEntity.ok(infoArticleService.getMyBookmarks(userService.findById(userId)));
     }
 
     @PostMapping("/{articleId}/likes")

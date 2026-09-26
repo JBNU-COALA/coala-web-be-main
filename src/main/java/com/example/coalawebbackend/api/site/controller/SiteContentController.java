@@ -1,10 +1,13 @@
 package com.example.coalawebbackend.api.site.controller;
 
+import com.example.coalawebbackend.api.site.dto.SiteBannerResponse;
 import com.example.coalawebbackend.api.site.dto.SiteContentRequest;
 import com.example.coalawebbackend.api.site.dto.SiteContentResponse;
+import com.example.coalawebbackend.api.site.service.SiteBannerService;
 import com.example.coalawebbackend.api.site.service.SiteContentService;
 import com.example.coalawebbackend.domain.user.service.UserService;
 import jakarta.validation.Valid;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -21,6 +24,12 @@ public class SiteContentController {
 
     private final SiteContentService siteContentService;
     private final UserService userService;
+    private final SiteBannerService banners;
+
+    @GetMapping("/banners")
+    public List<SiteBannerResponse> getBanners() {
+        return banners.publicBanners();
+    }
 
     @GetMapping("/about")
     public ResponseEntity<SiteContentResponse> getAbout() {

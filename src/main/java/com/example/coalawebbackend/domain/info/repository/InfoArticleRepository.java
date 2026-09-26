@@ -9,6 +9,10 @@ import org.springframework.data.repository.query.Param;
 
 public interface InfoArticleRepository extends JpaRepository<InfoArticle, Long> {
 
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("select article from InfoArticle article where article.id = :id")
+    java.util.Optional<InfoArticle> findForUpdate(@Param("id") Long id);
+
     List<InfoArticle> findAllByOrderBySourceDateDescIdDesc();
 
     List<InfoArticle> findByCategoryOrderBySourceDateDescIdDesc(InfoCategory category);

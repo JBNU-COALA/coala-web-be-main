@@ -90,9 +90,10 @@ public class StudyService {
         if (from == null || to == null || to.isBefore(from) || ChronoUnit.DAYS.between(from, to) > 93) {
             throw new CustomException(ErrorCode.VALIDATION_FAILED);
         }
-        return records.findByDateBetweenOrderByDateDescUpdatedAtDesc(from, to).stream()
-                .filter(record -> groupId == null || (record.getGroup() != null && record.getGroup().getId().equals(groupId)))
-                .filter(record -> userId == null || record.getAuthor().getId().equals(userId) || record.getAttendance().stream().anyMatch(entry -> entry.getUser().getId().equals(userId)))
+        if ((groupId != null && groupId <= 0) || (userId != null && userId <= 0)) {
+            throw new CustomException(ErrorCode.VALIDATION_FAILED);
+        }
+        return records.findInRange(from, to, groupId, userId).stream()
                 .map(record -> toRecord(record, actor)).toList();
     }
 

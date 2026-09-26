@@ -16,7 +16,6 @@ import com.example.coalawebbackend.domain.instance.repository.ServiceInquiryRepo
 import com.example.coalawebbackend.domain.moderation.service.PermissionService;
 import com.example.coalawebbackend.domain.user.entity.User;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -28,8 +27,6 @@ import org.springframework.util.StringUtils;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class InstanceApplicationService {
-
-    private static final DateTimeFormatter INQUIRY_DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy.MM.dd");
 
     private final InstanceApplicationRepository instanceApplicationRepository;
     private final ServiceInquiryRepository serviceInquiryRepository;
@@ -82,22 +79,24 @@ public class InstanceApplicationService {
     }
 
     public List<ServiceInquiryResponse> getInquiries(User actor) {
-        permissionService.assertModerator(actor);
-        return serviceInquiryRepository.findByIdStartingWithOrderByCreatedDateDesc("inq-")
-                .stream()
+        List<ServiceInquiry> inquiries = permissionService.canModerate(actor)
+                ? serviceInquiryRepository.findByIdStartingWithOrderByCreatedDateDesc("inq-")
+                : serviceInquiryRepository.findByUser_IdAndIdStartingWithOrderByCreatedDateDesc(actor.getId(), "inq-");
+        return inquiries.stream()
                 .map(this::toInquiryResponse)
                 .toList();
     }
 
     @Transactional
-    public ServiceInquiryResponse createInquiry(ServiceInquiryRequest request) {
+    public ServiceInquiryResponse createInquiry(User actor, ServiceInquiryRequest request) {
         String content = request.content().trim();
         ServiceInquiry inquiry = ServiceInquiry.builder()
                 .id(nextInquiryId())
                 .title(request.title().trim())
                 .summary(content.length() > 100 ? content.substring(0, 100) : content)
                 .content(content)
-                .author(defaultIfBlank(request.author(), "코알라"))
+                .author(actor.getName())
+                .user(actor)
                 .createdDate(LocalDate.now())
                 .status("검토 중")
                 .statusClass("status--pending")
@@ -141,15 +140,7 @@ public class InstanceApplicationService {
     }
 
     private ServiceInquiryResponse toInquiryResponse(ServiceInquiry inquiry) {
-        return new ServiceInquiryResponse(
-                inquiry.getId(),
-                inquiry.getTitle(),
-                inquiry.getSummary(),
-                inquiry.getAuthor(),
-                inquiry.getCreatedDate().format(INQUIRY_DATE_FORMAT),
-                inquiry.getStatus(),
-                inquiry.getStatusClass()
-        );
+        return ServiceInquiryResponse.from(inquiry);
     }
 
     private String nextApplicationId() {

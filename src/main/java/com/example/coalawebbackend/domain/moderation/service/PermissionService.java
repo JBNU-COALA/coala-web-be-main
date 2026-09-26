@@ -103,6 +103,6 @@ public class PermissionService {
     }
 
     private boolean isNoticeBoard(Board board) {
-        return board != null && "공지".equals(board.getName());
+        return board != null && "notice".equals(board.getCategoryKey());
     }
 }

@@ -10,9 +10,11 @@ import com.example.coalawebbackend.api.services.dto.MemberServiceRequest;
 import com.example.coalawebbackend.api.services.dto.MemberServiceResponse;
 import com.example.coalawebbackend.api.services.dto.ServiceInquiryRequest;
 import com.example.coalawebbackend.api.services.dto.ServiceInquiryResponse;
+import com.example.coalawebbackend.api.services.dto.ServiceInquiryUpdateRequest;
 import com.example.coalawebbackend.api.services.service.DomainApplicationService;
 import com.example.coalawebbackend.api.services.service.InstanceApplicationService;
 import com.example.coalawebbackend.api.services.service.MemberServiceCatalogService;
+import com.example.coalawebbackend.api.services.service.ServiceInquiryManagementService;
 import com.example.coalawebbackend.domain.user.entity.User;
 import com.example.coalawebbackend.domain.user.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -42,6 +44,7 @@ public class ServicesController {
     private final InstanceApplicationService instanceApplicationService;
     private final DomainApplicationService domainApplicationService;
     private final UserService userService;
+    private final ServiceInquiryManagementService inquiryManagement;
 
     @GetMapping
     @Operation(summary = "유저 서비스 목록 조회", description = "유저 서비스 카탈로그를 조회합니다.")
@@ -186,10 +189,23 @@ public class ServicesController {
     @PostMapping("/instances/inquiries")
     @Operation(summary = "인스턴스 문의 등록", description = "인스턴스 관련 문의사항을 등록합니다.")
     public ResponseEntity<ServiceInquiryResponse> createInstanceInquiry(
+            @AuthenticationPrincipal String userId,
             @Valid @RequestBody ServiceInquiryRequest request
     ) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(instanceApplicationService.createInquiry(request));
+                .body(instanceApplicationService.createInquiry(userService.findById(userId), request));
+    }
+
+    @PatchMapping("/instances/inquiries/{id}")
+    public ResponseEntity<ServiceInquiryResponse> updateInstanceInquiry(@PathVariable String id,
+            @AuthenticationPrincipal String userId, @Valid @RequestBody ServiceInquiryUpdateRequest request) {
+        return ResponseEntity.ok(inquiryManagement.update(userService.findById(userId), id, "inq-", request));
+    }
+
+    @PatchMapping("/domains/inquiries/{id}")
+    public ResponseEntity<ServiceInquiryResponse> updateDomainInquiry(@PathVariable String id,
+            @AuthenticationPrincipal String userId, @Valid @RequestBody ServiceInquiryUpdateRequest request) {
+        return ResponseEntity.ok(inquiryManagement.update(userService.findById(userId), id, "dom-inq-", request));
     }
 
     private User findActorOrNull(String userId) {

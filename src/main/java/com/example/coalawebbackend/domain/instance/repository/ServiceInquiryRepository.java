@@ -9,4 +9,6 @@ public interface ServiceInquiryRepository extends JpaRepository<ServiceInquiry, 
     List<ServiceInquiry> findAllByOrderByCreatedDateDesc();
 
     List<ServiceInquiry> findByIdStartingWithOrderByCreatedDateDesc(String prefix);
+
+    List<ServiceInquiry> findByUser_IdAndIdStartingWithOrderByCreatedDateDesc(Long userId, String prefix);
 }

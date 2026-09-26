@@ -2,6 +2,7 @@ package com.example.coalawebbackend.api.users.controller;
 
 import com.example.coalawebbackend.api.users.dto.UserActivityItemResponse;
 import com.example.coalawebbackend.api.users.dto.UserDirectoryResponse;
+import com.example.coalawebbackend.api.users.dto.UserOverviewResponse;
 import com.example.coalawebbackend.api.users.dto.UserProfileRequest;
 import com.example.coalawebbackend.api.users.service.UserActivityService;
 import com.example.coalawebbackend.api.users.service.UserDirectoryService;
@@ -56,6 +57,18 @@ public class UsersController {
             @AuthenticationPrincipal String currentUserId
     ) {
         return ResponseEntity.ok(userActivityService.getMyActivities(parseUserId(currentUserId)));
+    }
+
+    @GetMapping("/me/overview")
+    public ResponseEntity<UserOverviewResponse> getMyOverview(@AuthenticationPrincipal String currentUserId) {
+        Long id = parseUserId(currentUserId);
+        return ResponseEntity.ok(userActivityService.getOverview(id, id));
+    }
+
+    @GetMapping("/{userId}/overview")
+    public ResponseEntity<UserOverviewResponse> getOverview(@PathVariable Long userId,
+                                                          @AuthenticationPrincipal String currentUserId) {
+        return ResponseEntity.ok(userActivityService.getOverview(userId, parseUserId(currentUserId)));
     }
 
     @PatchMapping("/me/profile")

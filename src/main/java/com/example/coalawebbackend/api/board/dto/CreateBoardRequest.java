@@ -26,5 +26,8 @@ public class CreateBoardRequest {
     @Size(max = 255, message = "설명은 255자 이내여야 합니다.")
     private String description;
 
+    @Pattern(regexp = "notice|free|humor|news|contest|lab|resource")
+    private String categoryKey;
+
 
 }
